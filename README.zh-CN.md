@@ -2,7 +2,10 @@
 
 [English](README.md) · **简体中文**
 
-![生成的夜景街道：混凝土楼、亮灯窗户和霓虹招牌](web/samples/night.jpg)
+<p>
+  <img src="docs/images/closeup.jpg" width="49%" alt="蓝调时刻特写：亮着楼层灯的玻璃塔楼与混凝土塔楼">
+  <img src="docs/images/city.jpg" width="49%" alt="蓝调时刻的密集混凝土楼群，窗户陆续亮起">
+</p>
 
 把 OpenStreetMap 上的一块真实街区变成 PS2 风格的城市场景，包括混凝土板楼、像素贴图立面和霓虹招牌。在地图上框选区域，得到一个 `city.glb`，可以直接导入 Blender、Unreal Engine 或任何支持 glTF 的工具。
 

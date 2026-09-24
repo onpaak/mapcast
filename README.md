@@ -2,7 +2,10 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-![A generated street at night: concrete blocks, lit windows and neon signs](web/samples/night.jpg)
+<p>
+  <img src="docs/images/closeup.jpg" width="49%" alt="Close-up at blue hour: glass towers with lit floors beside a concrete tower">
+  <img src="docs/images/city.jpg" width="49%" alt="A dense block of concrete towers with lit windows at blue hour">
+</p>
 
 Turn a real street block from OpenStreetMap into a PS2-style city scene: concrete panel blocks, pixel-art facades and neon street signs. Pick an area on a map and get a single `city.glb` file to open in Blender, Unreal Engine or any glTF tool.
 
