@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mapcast</title>
+<link rel="stylesheet" href="/vendor/leaflet.css">
+<link rel="stylesheet" href="/style.css">
+<script type="importmap">{"imports":{"three":"/vendor/three/build/three.module.js","three/addons/":"/vendor/three/examples/jsm/"}}</script>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Map<span>cast</span></a>
+  <span class="tagline" data-i18n="tagline"></span>
+  <button id="help-open" type="button" class="ghost" data-i18n="help"></button>
+  <button id="language" type="button" class="ghost" data-i18n="language"></button>
+</header>
+
+<main>
+<aside class="panel">
+  <div class="panel-scroll">
+    <section class="step">
+      <h2 class="step-title"><span>1</span><span data-i18n="step1"></span></h2>
+      <form id="search-form" class="search" role="search">
+        <input id="search" type="search" autocomplete="off" data-i18n-attr="placeholder:searchPlaceholder;aria-label:searchPlaceholder">
+        <button type="submit" data-i18n="searchButton"></button>
+      </form>
+      <ul id="search-results" class="search-results" hidden></ul>
+      <div class="row">
+        <button id="select" type="button" aria-pressed="false" data-i18n="drawBox"></button>
+        <button id="select-area" type="button" aria-pressed="false" data-i18n="drawArea"></button>
+      </div>
+      <div class="row examples">
+        <select id="example" data-i18n-attr="aria-label:examples">
+          <option value="" data-i18n="examples"></option>
+          <option value="13.401,52.527,13.407,52.531">Berlin · Rosenthaler Platz</option>
+          <option value="114.168,22.3165,114.1725,22.3205">Hong Kong · Mong Kok</option>
+          <option value="-73.9895,40.755,-73.9835,40.7595">New York · Times Square</option>
+          <option value="-1.8395,51.7565,-1.8305,51.761">Cotswolds · Bibury</option>
+        </select>
+      </div>
+      <p id="map-help" class="hint" role="status"></p>
+      <p id="size" class="size"></p>
+
+      <details class="advanced">
+        <summary data-i18n="advanced"></summary>
+        <fieldset id="box-fields">
+          <legend data-i18n="bounds"></legend>
+          <div class="fields">
+            <label><span data-i18n="west"></span><input id="west" type="number" step="any" value="13.401" aria-describedby="validation"></label>
+            <label><span data-i18n="east"></span><input id="east" type="number" step="any" value="13.407" aria-describedby="validation"></label>
+            <label><span data-i18n="south"></span><input id="south" type="number" step="any" value="52.527" aria-describedby="validation"></label>
+            <label><span data-i18n="north"></span><input id="north" type="number" step="any" value="52.531" aria-describedby="validation"></label>
+          </div>
+        </fieldset>
+        <label id="area-field" class="field" hidden><span data-i18n="areaPoints"></span><textarea id="area-points" rows="4" spellcheck="false" aria-describedby="validation"></textarea></label>
+        <button type="button" id="locate" class="quiet" data-i18n="locate"></button>
+        <label class="field"><span data-i18n="provider"></span>
+          <select id="provider"><option value="map-api" data-i18n="providerMapApi"></option><option value="overpass" data-i18n="providerOverpass"></option></select>
+        </label>
+        <label class="check"><input id="offline" type="checkbox" aria-describedby="offline-help"><span data-i18n="offline"></span></label>
+        <p id="offline-help" class="hint" data-i18n="offlineHelp"></p>
+      </details>
+    </section>
+
+    <section class="step">
+      <h2 class="step-title"><span>2</span><span data-i18n="step2"></span></h2>
+      <fieldset class="choice">
+        <legend data-i18n="detail"></legend>
+        <label class="option"><input type="radio" name="detail" value="full" checked><span><strong data-i18n="detailFull"></strong><small data-i18n="detailFullHelp"></small></span></label>
+        <label class="option"><input type="radio" name="detail" value="lite"><span><strong data-i18n="detailLite"></strong><small data-i18n="detailLiteHelp"></small></span></label>
+      </fieldset>
+    </section>
+  </div>
+
+  <div class="panel-footer">
+    <p id="validation" class="error" role="alert"></p>
+    <button id="generate" type="button" class="primary"><span data-i18n="generate"></span></button>
+    <div id="progress" class="progress" hidden><div class="bar"></div></div>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+  </div>
+</aside>
+
+<section class="canvas">
+  <div id="map-pane" class="pane"><div id="map" data-i18n-attr="aria-label:mapLabel"></div></div>
+  <div id="preview-pane" class="pane stage" hidden>
+    <div id="viewer"></div>
+    <img id="preview" alt="" hidden>
+  </div>
+
+  <div class="canvas-bar">
+    <div class="segmented" role="group">
+      <button id="map-tab" type="button" aria-pressed="true" data-i18n="tabMap"></button>
+      <button id="preview-tab" type="button" aria-pressed="false" data-i18n="tabPreview"></button>
+    </div>
+    <label class="chip map-only"><input id="tiles" type="checkbox"><span data-i18n="tiles"></span></label>
+    <div class="segmented preview-only" role="group">
+      <button type="button" id="look-day" aria-pressed="true" data-i18n="day"></button>
+      <button type="button" id="look-night" aria-pressed="false" data-i18n="night"></button>
+    </div>
+  </div>
+  <p id="viewer-status" class="viewer-status preview-only" data-i18n="viewerHint"></p>
+  <p id="stale-note" class="stale-note preview-only" role="status" data-i18n="staleResult" hidden></p>
+
+  <aside id="result-card" class="card">
+    <div class="card-head">
+      <h2 data-i18n="result"></h2>
+      <select id="recent" data-i18n-attr="aria-label:recent" hidden></select>
+      <button id="card-toggle" type="button" class="icon" aria-expanded="true" data-i18n-attr="aria-label:collapse">−</button>
+    </div>
+    <div id="card-body" class="card-body">
+      <div id="result-empty">
+        <img id="sample" class="sample" src="/samples/night.jpg" alt="">
+        <p class="hint" data-i18n="emptyResult"></p>
+      </div>
+      <div id="result-view" hidden>
+        <div class="metrics">
+          <div><span data-i18n="metricBuildings"></span><strong id="m-buildings"></strong></div>
+          <div><span data-i18n="metricTriangles"></span><strong id="m-triangles"></strong></div>
+          <div><span data-i18n="metricSize"></span><strong id="m-size"></strong></div>
+        </div>
+        <p id="m-options" class="hint"></p>
+        <p id="empty-help" class="hint" hidden></p>
+        <div class="row">
+          <a id="download" class="button primary" download="city.glb" data-i18n="download"></a>
+          <button id="delete-result" type="button" class="danger" data-i18n="deleteResult"></button>
+        </div>
+        <p class="credit" data-i18n="credit"></p>
+        <details>
+          <summary data-i18n="moreFiles"></summary>
+          <ul id="more-files" class="links"></ul>
+        </details>
+        <details>
+          <summary data-i18n="details"></summary>
+          <div id="details" class="details"></div>
+        </details>
+      </div>
+    </div>
+  </aside>
+</section>
+</main>
+
+<dialog id="help-dialog">
+  <div class="dialog-head">
+    <h2 data-i18n="help"></h2>
+    <button id="help-close" type="button" class="icon" data-i18n-attr="aria-label:close">×</button>
+  </div>
+  <h3 data-i18n="helpBlenderTitle"></h3>
+  <p data-i18n="helpBlender"></p>
+  <h3 data-i18n="helpUnrealTitle"></h3>
+  <p data-i18n="helpUnreal"></p>
+  <h3 data-i18n="helpNightTitle"></h3>
+  <p data-i18n="helpNight"></p>
+  <h3 data-i18n="helpCreditTitle"></h3>
+  <p data-i18n="helpCredit"></p>
+  <h3 data-i18n="helpAboutTitle"></h3>
+  <p data-i18n="helpAbout"></p>
+</dialog>
+
+<script src="/vendor/leaflet.js"></script>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

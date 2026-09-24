@@ -1,0 +1,24 @@
+{
+  "name": "mapcast",
+  "version": "0.1.0",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "demo": "node src/cli.mjs --input examples/block.json --out output/demo",
+    "demo:urban": "node src/cli.mjs --input examples/urban-block.json --out output/urban",
+    "test": "node --test",
+    "textures:vending": "node tools/vending-texture.mjs overrides/source/vending_day.png overrides/source/vending_night.png",
+    "textures:billboards": "node tools/billboard-textures.mjs",
+    "kit": "node tools/building-kit.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "earcut": "^3.2.3",
+    "leaflet": "^1.9.4",
+    "three": "^0.180.0"
+  }
+}

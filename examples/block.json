@@ -1,0 +1,11 @@
+{
+  "type":"FeatureCollection",
+  "source":"Synthetic test fixture near Berlin coordinates; not real OSM data",
+  "features":[
+    {"type":"Feature","id":"road-a","properties":{"highway":"residential"},"geometry":{"type":"LineString","coordinates":[[13.400,52.520],[13.403,52.520]]}},
+    {"type":"Feature","id":"road-b","properties":{"highway":"secondary"},"geometry":{"type":"LineString","coordinates":[[13.4015,52.519],[13.4015,52.521]]}},
+    {"type":"Feature","id":"a","properties":{"building":"yes","building:levels":4},"geometry":{"type":"Polygon","coordinates":[[[13.4002,52.5202],[13.4012,52.5202],[13.4012,52.5207],[13.4002,52.5207],[13.4002,52.5202]]]}},
+    {"type":"Feature","id":"b","properties":{"building":"yes","height":"18 m"},"geometry":{"type":"Polygon","coordinates":[[[13.4018,52.5202],[13.4028,52.5202],[13.4028,52.5207],[13.4023,52.5207],[13.4023,52.5204],[13.4018,52.5204],[13.4018,52.5202]]]}},
+    {"type":"Feature","id":"c","properties":{"building":"yes"},"geometry":{"type":"Polygon","coordinates":[[[13.4002,52.5193],[13.4012,52.5193],[13.4012,52.5198],[13.4002,52.5198],[13.4002,52.5193]]]}}
+  ]
+}

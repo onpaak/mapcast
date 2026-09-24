@@ -1,0 +1,6 @@
+output/
+node_modules/
+cache/
+.npm-cache/
+overrides/
+.claude/
