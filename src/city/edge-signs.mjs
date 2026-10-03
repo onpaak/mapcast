@@ -9,9 +9,10 @@ import {BIN} from './materials.mjs';
 const signExtras=id=>({sourceId:id,sceneModule:'Buildings',fictionalSign:true});
 
 // Upper-storey signage on one street edge: a tall tower sign, smaller vertical signs at bay
-// joints, and on the front edge of taller blocks a billboard or rooftop letters.
+// joints, and on the front edge of taller blocks a billboard or rooftop letters. Curtain walls
+// and towers carry only the rooftop ones.
 export function placeEdgeSigns(city,building,edgeInfo,out){
-  const street=edgeInfo.isStreet&&building.floors>=3&&!building.industrial;
+  const street=edgeInfo.isStreet&&building.floors>=3&&!building.industrial&&!building.plainFacade;
   const towerJoint=street&&!building.quiet?placeTowerSign(city,building,edgeInfo,out):-1;
   if(street&&(!building.quiet||building.retail||building.mixedShop))placeVerticalSigns(city,building,edgeInfo,out,towerJoint);
   const onRoof=edgeInfo.edge===building.front&&building.height>=12&&edgeInfo.len>=8&&!building.industrial&&!building.quiet;

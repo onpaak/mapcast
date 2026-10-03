@@ -11,7 +11,7 @@ Each building is assigned one of five families from its tags and the shops found
 | Residential | Rows of windows, some recessed loggias, a solid entrance door |
 | Office | Dense window bands, vertical fins, a deeper cornice |
 | Shop | Ground floor with entrance, display windows, canopy, fascia and shop sign |
-| Industrial / warehouse | Tall single volume, loading doors at the front, high windows on the sides |
+| Industrial / warehouse | Tall single volume, roller-shutter loading doors at the front, high windows on the sides |
 | Public hall | Tall windows, heavy piers, double doors |
 
 Schools, hotels and hospitals reuse the ordinary window modules. `building=yes` with no other hints uses the residential layout. `metadata.json` → `concreteFamilies` records the family chosen for each building and the evidence behind it: `tag`, `mapped-use`, `default` or `fallback`.
@@ -31,7 +31,8 @@ The atlas has seven facade profiles: slender windows, wide windows, grouped logg
 
 Buildings tagged as glass get a curtain wall instead: `building:facade:material`, or `building:material` when the facade material is missing, set to `glass` or `mirror`. Untagged buildings never get one, so a skyline does not mix real glass towers with guessed ones. Sections inherit the tag from their outline.
 
-- Blue-grey glass between metal mullions, with a dark spandrel at each floor slab, runs from the pavement to a metal coping. Only the entrance is modelled.
+- Blue-grey glass between metal mullions, with a dark spandrel at each floor slab, runs from the pavement to a metal coping, the ground floor included: no modelled entrance, shopfront or vending machines.
+- No signs hang on the walls (tower signs, vertical signs, square icon boxes, shop signs). Rooftop billboards and letters still appear. Towers of 12 storeys or more follow the same two rules with their tower-grid facade.
 - There are no loggias or air-conditioning units.
 - The material is glossy, so Blender and Unreal reflect the sky. With no sky or HDRI, the glass looks dark grey.
 - At night whole floors light up, about a third of them, with the odd dark bay.
@@ -73,6 +74,19 @@ Many tall buildings are mapped as `building:part` sections: a podium, setbacks, 
 
 `metadata.json` → `buildingParts` lists which outlines were replaced by which sections, and which sections were extended down (`extendedDown`). Roof shapes (`roof:shape`) are not modelled; every roof is flat.
 
+### Ground-floor kit
+
+Modelled ground floors also carry service details, fitted into the building's own wall so the finish continues around them:
+
+| Piece | Rule |
+| --- | --- |
+| Roller shutters | Every warehouse loading door (about 70% closed, the rest half open onto a dark interior), with the housing on the wall. About 25% of shop bays without a window poster, closed or half raised; a half-raised shutter over a shop door stops above head height. Vacant shops (`shop=vacant`) keep them closed. The housing of a shop shutter sits in the wall, clear of fascia and canopy. |
+| Service doors | About 5% of plain street-facing ground-floor bays, in place of the window. A steel door, 0.98 × 2.08 m, with a louvred transom where the storey is tall enough. Never next to the main entrance. |
+| Cellar vents | About 10% of those bays: a louvred vent under the window. |
+| Meter cabinets | About 8% of those bays: a wall-mounted cabinet on the pier beside the window, when it fits with 22 cm clear of the window. |
+
+Bays with a vending machine get no kit piece. Glass curtain walls, buildings of 12 storeys or more, offices and raised sections keep their plain ground floors. Parts keep their real size: shutters add slats to fill an opening, and doors, vents and cabinets never stretch. Only the shutter slats keep a folded profile; door leaves, vent frames and cabinet details are single faces, so a cabinet is 34 triangles and a vent about 20. Their painted steel shares one 128 × 128 weathered paint texture (rust and runoff over 4 m), tinted per material; each building picks one shutter colour and one door colour. `metadata.json` → `groundFloorKit` lists every piece with its bay and bounds, and `groundFloorKitSummary` counts them.
+
 ### Shared walls
 
 Walls against a neighbouring building, or against another section of the same building, get no facade where the neighbour hides them. A wall only shows above the neighbour's roof. Where two sections share the same outer wall, only the taller one draws it, so the faces never overlap and flicker. Where a taller tower rises from the ground just inside a podium's wall (within 1.5 m), that stretch of podium wall, with its parapet and signs, is left out, so the tower's facade runs down to the street instead of cutting through the podium. In dense blocks this removes a large share of triangles no camera could see.
@@ -99,6 +113,8 @@ All signs share one atlas 512 px wide (its height grows with the catalog), plus 
 Words are generic shop categories such as ラーメン, カラオケ, 宵夜, 노래방, HOTEL or DVD. They are fictional and do not represent the real businesses at that location.
 
 The words and designs are listed in `src/sign-catalog.mjs`, a mix of Japanese, Chinese, Korean and English. Each entry names its kind (front, vertical, square, tower or rooftop), text, style, colour scheme and frame. Latin covers A–Z and 0–9, so any English word works; kana, hanzi and hangul exist only for the characters the catalog uses.
+
+Glass curtain walls and towers of 12 storeys or more carry none of the wall-mounted signs below, only rooftop billboards and letters.
 
 | Sign | Placement | Metadata |
 | --- | --- | --- |

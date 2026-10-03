@@ -16,7 +16,8 @@ test('OSM use selects retail and loading frontages without changing plain reside
  assert.equal(warehouse.metadata.frontages.filter(f=>f.type==='street-door').length,1);
  for(const scene of [shop,warehouse]){
    assert.ok(scene.objects.every(o=>o.positions.every(Number.isFinite)));
-   assert.ok(scene.metadata.textureReuse.sharedBuildingTextures<=8);
+   // +1 for the ground-floor kit's shared weathered paint tile.
+   assert.ok(scene.metadata.textureReuse.sharedBuildingTextures<=9);
   assert.ok(scene.textures.filter(t=>t.name==='Shared_window_posters_128x192').length<=1);
    const bays=scene.metadata.frontages.map(f=>`${f.edge}/${f.bay}`);assert.equal(new Set(bays).size,bays.length);
  }
@@ -54,6 +55,18 @@ test('window variation and shared surface assignments remain stable when source 
  const a=concreteCity(generate(data)),b=concreteCity(generate({...data,features:[...features].reverse()}));
  const signature=scene=>scene.objects.filter(o=>o.name.startsWith('Building_')).map(o=>({name:o.name,material:scene.materials[o.material].name,positions:o.positions})).sort((x,y)=>x.name.localeCompare(y.name));
  assert.deepEqual(signature(a),signature(b));
- assert.ok(a.metadata.textureReuse.sharedBuildingTextures<=6);
+ assert.ok(a.metadata.textureReuse.sharedBuildingTextures<=7);
  assert.ok(a.materials.some(m=>m.name==='Unlit glass'));
+});
+
+test('curtain walls and towers keep a painted ground floor and carry no hung signs',()=>{
+ const make=properties=>concreteCity(generate({type:'FeatureCollection',features:[{id:'way/95',properties,geometry:{type:'Polygon',coordinates:[[[0,0],[.0006,0],[.0006,.00015],[0,.00015],[0,0]]]}}]}));
+ for(const properties of [{building:'retail','building:levels':'5','building:material':'glass',shop:'mall'},{building:'apartments','building:levels':'14',shop:'bakery'}]){
+   const {metadata,objects,materials}=make(properties);
+   for(const key of ['entranceLayouts','frontages','shopSigns','shopBlades','streetSigns','windowPosters','shopCanopies'])assert.deepEqual(metadata[key],[],key);
+   assert.ok(!objects.some(o=>/_(TowerSign|StreetSign|ShopSign)_/.test(o.name)));
+   assert.ok(!objects.some(o=>o.name.startsWith('Building_')&&materials[o.material].name==='Oxide painted entrance'));
+ }
+ // An ordinary block of the same size keeps its modelled entrance.
+ assert.equal(make({building:'apartments','building:levels':'6'}).metadata.entranceLayouts.length,1);
 });

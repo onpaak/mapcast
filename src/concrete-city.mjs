@@ -5,7 +5,7 @@ import {residentialBalcony,balconyFits} from './residential-facade.mjs';
 import {surfaceUV,compactMaterials} from './concrete-materials.mjs';
 import {publicHallEdge} from './public-hall.mjs';
 import {edgeFrame} from './facade-atlas.mjs';
-import {createCityMaterials,BIN,BIN_COUNT} from './city/materials.mjs';
+import {createCityMaterials,BIN,BIN_COUNT,KIT_BINS} from './city/materials.mjs';
 import {createStreetContext,lowRiseFlags} from './city/street-context.mjs';
 import {planBuilding} from './city/building-plan.mjs';
 import {edgeGeometry} from './city/edge-geometry.mjs';
@@ -34,7 +34,7 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
     layouts:[],frontages:[],families:[],canopies:[],windowPosters:[],
     shopSigns:[],shopBlades:[],streetSigns:[],rooftopSigns:[],billboards:[],
     streetProps:{acUnits:0,vendingMachines:[],standingSigns:[]},
-    rooftopEquipment:[],placedTowers:[],placedRoofSigns:[]
+    rooftopEquipment:[],placedTowers:[],placedRoofSigns:[],groundFloorKit:[]
   };
   const city={scene,materials,street,state,lite};
   for(const [index,source] of sources.entries())buildBuilding(city,{...planBuilding(source,street.roads),quiet:lowRise[index]});
@@ -44,7 +44,8 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
   Object.assign(scene.metadata,{
     style:'ps2-neon-concrete-v14',frontages:state.frontages,entranceAccess:[],shopCanopies:state.canopies,concreteFamilies:state.families,
     entranceAccessSummary:{},entranceAccessEnabled:false,shopSigns:state.shopSigns,shopBlades:state.shopBlades,streetSigns:state.streetSigns,
-    rooftopSigns:state.rooftopSigns,billboards:state.billboards,detail:lite?'lite':'full',windowPosters:state.windowPosters,streetProps:state.streetProps,rooftopEquipment:state.rooftopEquipment
+    rooftopSigns:state.rooftopSigns,billboards:state.billboards,detail:lite?'lite':'full',windowPosters:state.windowPosters,streetProps:state.streetProps,rooftopEquipment:state.rooftopEquipment,
+    groundFloorKit:state.groundFloorKit,groundFloorKitSummary:state.groundFloorKit.reduce((a,k)=>{const key=k.state?`${k.kind}-${k.state}`:k.kind;a[key]=(a[key]??0)+1;return a;},{})
   });
   scene.metadata.generationPreset.name='ps2-neon-concrete-v14';
   const buildingMaterials=new Set(scene.objects.filter(o=>o.name.startsWith('Building_')).map(o=>o.material));
@@ -74,9 +75,10 @@ function buildBuilding(city,building){
 
   const palette=materials.palette(seed);
   const extras={...source.extras,sceneModule:'Buildings',concreteFamily:building.family,familyAssignment:building.assignment.assignment,familyEvidence:building.assignment.evidence,styleFamily:building.styleFamily};
-  // Glass bins tile every 1.5 m, walls every 3 m; the offset varies texture placement per building.
+  // Glass bins tile every 1.5 m, walls every 3 m, ground-floor kit paint every 4 m; the offset
+  // varies texture placement per building.
   const glassBins=[BIN.glass,BIN.unlitGlass,BIN.warmGlass,BIN.displayGlass];
-  bins.forEach((mesh,bin)=>{if(mesh.positions.length)scene.objects.push({name:source.name+'_Concrete_'+bin,...surfaceUV(mesh,ring[0],glassBins.includes(bin)?1.5:3,(seed%8)/8),material:palette[bin],extras});});
+  bins.forEach((mesh,bin)=>{if(mesh.positions.length)scene.objects.push({name:source.name+'_Concrete_'+bin,...surfaceUV(mesh,ring[0],glassBins.includes(bin)?1.5:KIT_BINS.includes(bin)?4:3,(seed%8)/8),material:palette[bin],extras});});
   if(out.facadeMesh.positions.length)scene.objects.push({name:source.name+'_FacadeAtlas',...out.facadeMesh,material:building.glass?materials.curtainMaterial:materials.facadeMaterial(seed),extras:{...extras,...(building.glass?{curtainWall:true}:{facadeAtlasRow:building.atlasRow})}});
   const propExtras={sourceId:id,sceneModule:'StreetProps',inferred:true};
   if(out.propMesh.positions.length)scene.objects.push({name:'StreetProps_'+id,...out.propMesh,material:materials.propsMaterial,extras:propExtras});
@@ -127,11 +129,11 @@ function buildMass(city,building,out){
       if(top<=Math.max(hidden,behind[col])+.01)continue;
       const shopBay=mixedShop&&col!==door&&Math.abs(col-door)<=Math.min(2,source.extras.containedShops.length);
       const bay={floor,col,left,right,y,top,entrance,shopBay,balcony:floor>0&&balconyBays[col],cellKey:`${id}:${edge}:${floor}:${col}`};
-      if(!lite&&!building.elevated&&edge===front&&floor===0&&(retail||industrial||shopBay)&&bw>1.2&&top>2)buildShopfrontBay(city,building,edgeInfo,bay,out);
+      if(!lite&&!building.elevated&&!building.plainFacade&&edge===front&&floor===0&&(retail||industrial||shopBay)&&bw>1.2&&top>2)buildShopfrontBay(city,building,edgeInfo,bay,out);
       // Upper floors and non-street ground floors are painted atlas cells; industrial
-      // ground floors keep their high modelled windows on every side. Curtain walls run
-      // down to the pavement, leaving only the entrance modelled.
-      else if(bay.balcony||floor>0||lite||building.glass&&!entrance||!edgeInfo.isStreet&&!industrial)buildAtlasBay(city,building,edgeInfo,bay,out);
+      // ground floors keep their high modelled windows on every side. Curtain walls and
+      // towers run their painted facade down to the pavement, entrance included.
+      else if(bay.balcony||floor>0||lite||building.plainFacade||!edgeInfo.isStreet&&!industrial)buildAtlasBay(city,building,edgeInfo,bay,out);
       else buildModelledBay(city,building,edgeInfo,bay,out);
     }
     placeEdgeSigns(city,building,edgeInfo,out);

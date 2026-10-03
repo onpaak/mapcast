@@ -5,13 +5,15 @@ import {shopBlade} from '../shop-blade.mjs';
 import {windowPoster,posterTitles} from '../window-posters.mjs';
 import {standingSign} from '../street-props.mjs';
 import {BIN} from './materials.mjs';
+import {kitAllowed,shutterState,rollerShutter} from './ground-floor-kit.mjs';
 
 // Face height of a projecting sign: square pictogram boxes read better larger.
 const bladeHeight=sign=>sign.kind==='square'?.6:.36;
 
 // One modelled ground-floor bay on the front edge of a shop, warehouse or mixed-use block:
 // display window or door (or a loading door for warehouses), fascia, poster, shop sign with
-// an optional projecting blade, canopy and a standing pavement lightbox.
+// an optional projecting blade, canopy and a standing pavement lightbox. Loading doors and
+// some display windows carry a roller shutter from the ground-floor kit.
 export function buildShopfrontBay(city,building,edgeInfo,bay,out){
   const {scene,materials,street,state}=city,{signs,signMaterials}=materials;
   const {id,source,seed,industrial,retail}=building,{edge,a,b,u,n,bw,door,geometry}=edgeInfo,{box,panel,reveal,sillFace}=geometry;
@@ -21,23 +23,33 @@ export function buildShopfrontBay(city,building,edgeInfo,bay,out){
   const shopEntry=shopBay&&Math.abs(col-door)===1&&bw>=2;
   const entryWidth=Math.min(1.5,bw-.36);
   const l=entrance?(left+right-entryWidth)/2:left+.18,r=entrance?(left+right+entryWidth)/2:right-.18;
-  const bottom=entrance||loading?0:.22,upper=Math.min(industrial?3.5:2.5,top-.45);
   const split=shopEntry?l+Math.min(1.0,(r-l)*.42):undefined;
+  const poster=(retail||shopBay)&&!entrance&&stableSeed(`${id}:poster:${col}`)%3===0;
+  // Loading doors and some shopfronts get a roller shutter over the whole opening, shop door
+  // included; a closed one reaches the ground and hides the glass, so nothing is built behind it.
+  const shutter=kitAllowed(building)&&!entrance&&r-l>=1.6?shutterState(building,{edge,col,loading,poster}):null;
+  const closedShop=shutter==='closed'&&!loading;
+  const bottom=entrance||loading||closedShop?0:.22,upper=Math.min(industrial?3.5:2.5,top-.45);
 
   panel(left,l,0,top,0,BIN.wall);panel(r,right,0,top,0,BIN.wall);panel(shopEntry?split+.06:l,r,0,bottom,0,BIN.base);panel(l,r,upper,top,0,BIN.wall);
   reveal(l,r,shopEntry?0:bottom,upper,-.13,{sill:!shopEntry});
-  if(shopEntry)sillFace(split+.06,r,bottom,-.13);
-  if(shopEntry){panel(l,split,0,upper,-.13,BIN.glass);panel(split+.06,r,bottom,upper,-.13,BIN.displayGlass);}
-  else box(l,r,bottom,upper,-.13,-.21,loading?BIN.metal:entrance?BIN.glass:BIN.displayGlass);
+  if(shopEntry&&!closedShop){sillFace(split+.06,r,bottom,-.13);panel(l,split,0,upper,-.13,BIN.glass);panel(split+.06,r,bottom,upper,-.13,BIN.displayGlass);}
+  else if(loading&&shutter)box(l,r,bottom,upper,-.13,-.21,BIN.recess);
+  else if(!closedShop&&!shopEntry)box(l,r,bottom,upper,-.13,-.21,loading?BIN.metal:entrance?BIN.glass:BIN.displayGlass);
   // Frame, transom and a mullion, door handle or the slats of a roller door.
-  box(l,l+.07,bottom,upper,-.04,-.14,BIN.metal);box(r-.07,r,bottom,upper,-.04,-.14,BIN.metal);
-  box(l,r,upper-.07,upper,-.04,-.14,BIN.metal);
-  if(loading){for(let sy=bottom+.18;sy<upper;sy+=.22)box(l+.07,r-.07,sy,Math.min(sy+.018,upper),-.035,-.05,BIN.joint);}
-  else if(shopEntry){box(split,split+.06,0,upper,-.035,-.14,BIN.metal);box(split-.16,split-.11,.95,1.28,-.01,-.07,BIN.metal);box(l,split,0,.065,-.03,-.14,BIN.metal);}
+  if(!closedShop&&!(loading&&shutter)){
+    box(l,l+.07,bottom,upper,-.04,-.14,BIN.metal);box(r-.07,r,bottom,upper,-.04,-.14,BIN.metal);
+    box(l,r,upper-.07,upper,-.04,-.14,BIN.metal);
+  }
+  // A half-raised shutter over a shop door stops above head height.
+  if(shutter)rollerShutter(geometry,n,{l,r,bottom,head:upper,curtain:shutter==='closed'?bottom:loading?Math.min(2,(upper-bottom)*.6):shopEntry?Math.max(.83,upper-.75):.83,housing:loading?'surface':'concealed'});
+  else if(loading){for(let sy=bottom+.18;sy<upper;sy+=.22)box(l+.07,r-.07,sy,Math.min(sy+.018,upper),-.035,-.05,BIN.joint);}
+  if(shopEntry&&!closedShop){box(split,split+.06,0,upper,-.035,-.14,BIN.metal);box(split-.16,split-.11,.95,1.28,-.01,-.07,BIN.metal);box(l,split,0,.065,-.03,-.14,BIN.metal);}
   else if(entrance){box(r-.18,r-.13,.92,1.18,-.02,-.06,BIN.joint);box(l,r,.01,.08,-.03,-.14,BIN.metal);}
-  else box((l+r)/2-.035,(l+r)/2+.035,bottom,upper,-.035,-.14,BIN.metal);
+  if(shutter!=='closed'&&!loading&&!shopEntry&&!entrance)box((l+r)/2-.035,(l+r)/2+.035,bottom,upper,-.035,-.14,BIN.metal);
+  if(shutter)state.groundFloorKit.push({sourceId:id,edge,bay:col,kind:loading?'loading-shutter':'shop-shutter',state:shutter,bounds:[l,r,bottom,upper],appearanceSource:'procedural-interpretation'});
 
-  if((retail||shopBay)&&!entrance&&stableSeed(`${id}:poster:${col}`)%3===0){
+  if(poster){
     const row=stableSeed(`${id}:poster-art:${col}`)%posterTitles.length;
     const pane=[shopEntry?split+.06:(l+r)/2+.035,r-.07,bottom,upper-.07];
     const poster=windowPoster({a,u,n,pane,row});
@@ -85,6 +97,6 @@ export function buildShopfrontBay(city,building,edgeInfo,bay,out){
       }
     }
   }
-  state.frontages.push({sourceId:id,edge,bay:col,type:loading?'loading-door':entrance?'street-door':'display-window',bounds:[l,r,bottom,upper],...(shopEntry?{shopDoorBounds:[l,split,0,upper]}:{})});
+  state.frontages.push({sourceId:id,edge,bay:col,type:loading?'loading-door':entrance?'street-door':'display-window',bounds:[l,r,bottom,upper],...(shutter?{shutter}:{}),...(shopEntry?{shopDoorBounds:[l,split,0,upper]}:{})});
   if(entrance)state.layouts.push({sourceId:id,objectName:source.name,edge,bay:col,bottom:0,window:false,bounds:[l,r,0,upper]});
 }

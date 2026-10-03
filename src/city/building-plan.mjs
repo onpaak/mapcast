@@ -15,6 +15,8 @@ export function planBuilding(source,roads){
   const industrial=family==='industrial',retail=family==='retail',publicHall=family==='public-hall',office=family==='office',residential=family==='residential';
   // Residential blocks with shops inside (OSM shop points) get shopfronts around the door.
   const mixedShop=residential&&!assignment.plainWindows&&(source.extras.containedShops?.length??0)>0;
+  // A vacant shop (on the building or a shop point inside it) keeps its shutters down.
+  const vacant=tags.shop==='vacant'||(source.extras.containedShops??[]).some(s=>s.shop==='vacant');
   // A raised building:part section is planned from its own base (min_height) upwards.
   const ring=source.extras.footprint,base=source.extras.minHeight??0,height=source.extras.height-base,elevated=base>0;
   const floors=industrial?1:Math.max(1,Math.round(height/3)),floorHeight=height/floors;
@@ -41,9 +43,12 @@ export function planBuilding(source,roads){
   for(let i=0;i<lengths.length;i++)if(lengths[i]>3&&roadDistance[i]<best){best=roadDistance[i];front=i;}
 
   return {
-    source,id,assignment,family,industrial,retail,publicHall,office,residential,mixedShop,
+    source,id,assignment,family,industrial,retail,publicHall,office,residential,mixedShop,vacant,
     structure,glass,ring,holes:source.extras.holes??[],base,elevated,height,floors,floorHeight,seed,facade,highRise,atlasRow,
     brickBase:seed%3===1,lengths,front,
+    // Curtain walls and towers of 12+ storeys keep one facade down to the pavement: a painted
+    // ground floor (no modelled doors or shopfronts) and no signs hung on the walls.
+    plainFacade:glass||highRise,
     // Modelled ground floors only where a street camera sees them; other sides use atlas cells.
     // Raised sections have no street level.
     isStreetEdge:edge=>!elevated&&(edge===front||roadDistance[edge]<25),

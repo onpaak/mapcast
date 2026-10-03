@@ -32,6 +32,7 @@ src/
     building-plan.mjs            family, height, floors, facade choice for one building
     edge-geometry.mjs            box / panel / reveal helpers along one facade edge
     shopfront.mjs                modelled ground-floor shop bays
+    ground-floor-kit.mjs         roller shutters, service doors, vents and meter cabinets
     facade-bays.mjs              atlas bays, modelled windows and doors, courtyards
     edge-signs.mjs               tower and vertical signs, billboards, rooftop letters
     roof-equipment.mjs           water tanks, plant rooms, condensers and antennas

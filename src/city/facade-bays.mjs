@@ -5,6 +5,7 @@ import {canopyObstacles} from '../shop-canopy.mjs';
 import {acUnit,vendingMachine,VENDING_WIDTH} from '../street-props.mjs';
 import {edgeFrame,facadeProfiles,groundCell,upperCell,curtainCell} from '../facade-atlas.mjs';
 import {BIN} from './materials.mjs';
+import {kitAllowed,bayKit,wallAround,serviceDoor,louvredVent,meterCabinet,CABINET} from './ground-floor-kit.mjs';
 
 // Atlas cell for a bay-floor: upper floors vary their lit windows, ground floors add a base.
 // A raised section's lowest floor is an upper floor too. Curtain walls light whole floors,
@@ -34,7 +35,8 @@ export function buildAtlasBay(city,building,edgeInfo,bay,out){
 }
 
 // A modelled street-facing bay: wall pieces around a recessed window or the entrance door,
-// plus vending machines on busier streets.
+// plus vending machines on busier streets. Some ground-floor bays without a machine carry a
+// kit piece instead: a steel service door, a cellar vent under the window or a meter cabinet.
 export function buildModelledBay(city,building,edgeInfo,bay,out){
   const {street,state}=city,{id,source,floors,facade,residential,office,industrial,retail,mixedShop,front}=building;
   const {edge,a,u,n,bw,door,geometry}=edgeInfo,{box,panel,reveal}=geometry,{floor,col,left,right,y,top,entrance,cellKey}=bay;
@@ -43,13 +45,9 @@ export function buildModelledBay(city,building,edgeInfo,bay,out){
   const bottom=entrance?0:industrial?Math.max(.45,top-1.7):y+(office?.28:residential?facade.sill:.85);
   const upper=entrance?Math.min(2.3,top-.25):top-(office?.28:residential?facade.head:.48);
   const baseTop=floor===0?Math.min(.6,top):y;
-  panel(left,l,y,baseTop,0,BIN.base);panel(r,right,y,baseTop,0,BIN.base);
-  panel(left,l,baseTop,top,0,BIN.wall);panel(r,right,baseTop,top,0,BIN.wall);
-  panel(l,r,y,Math.min(bottom,baseTop),0,BIN.base);panel(l,r,Math.max(y,baseTop),bottom,0,BIN.wall);panel(l,r,upper,top,0,BIN.wall);
-  reveal(l,r,bottom,upper,-.18);
 
   // Vending machines belong to busier streets: blocks of three storeys or more, or shops.
-  const vend=stableSeed(cellKey+':vend');
+  const vend=stableSeed(cellKey+':vend');let vending=false;
   if(floor===0&&!entrance&&!industrial&&(floors>=3&&!building.quiet||retail||mixedShop)&&!(edge===front&&Math.abs(col-door)<=1)&&vend%100<6){
     // Pairs when the bay is wide enough.
     const gap=VENDING_WIDTH/2+.02;
@@ -57,8 +55,38 @@ export function buildModelledBay(city,building,edgeInfo,bay,out){
       const probe=vendingMachine({a,u,n,along}),base=street.baseAt(probe.footprint),machine=vendingMachine({a,u,n,along,base:base??0});
       if(base===undefined||!street.fits(machine.footprint))continue;
       out.add(out.vendMesh,machine.mesh);street.propBlocks.push(...canopyObstacles([machine.footprint]));
-      state.streetProps.vendingMachines.push({sourceId:id,edge,bay:col,footprint:machine.footprint});
+      state.streetProps.vendingMachines.push({sourceId:id,edge,bay:col,footprint:machine.footprint});vending=true;
     }
+  }
+  const kit=floor===0&&!entrance&&!vending&&kitAllowed(building)?bayKit(building,edgeInfo,bay,{l,r,bottom}):null;
+  const record=bounds=>state.groundFloorKit.push({sourceId:id,edge,bay:col,kind:kit.kind,bounds,appearanceSource:'procedural-interpretation'});
+
+  if(kit?.kind==='service-door'){
+    // The door takes the window's place; an optional louvred transom sits above it.
+    const {door:d,vent}=kit;
+    wallAround(geometry,{left,right,y,top,baseTop},[d,...(vent?[vent]:[])]);
+    reveal(d.l,d.r,d.bottom,d.top,-.1,{sill:false});serviceDoor(geometry,{l:d.l,bottom:d.bottom});
+    if(vent){reveal(vent.l,vent.r,vent.bottom,vent.top,-.08);louvredVent(geometry,n,vent);}
+    record([d.l,d.r,d.bottom,vent?vent.top:d.top]);
+    if(col>0)panel(left,left+.018,y,top,.003,BIN.joint);
+    panel(left,right,top-.018,top,.003,BIN.joint);
+    return;
+  }
+  if(kit?.kind==='cellar-vent'){
+    const {vent}=kit;
+    wallAround(geometry,{left,right,y,top,baseTop},[{l,r,bottom,top:upper},vent]);
+    reveal(vent.l,vent.r,vent.bottom,vent.top,-.08);louvredVent(geometry,n,vent);
+    record([vent.l,vent.r,vent.bottom,vent.top]);
+  }else{
+    panel(left,l,y,baseTop,0,BIN.base);panel(r,right,y,baseTop,0,BIN.base);
+    panel(left,l,baseTop,top,0,BIN.wall);panel(r,right,baseTop,top,0,BIN.wall);
+    panel(l,r,y,Math.min(bottom,baseTop),0,BIN.base);panel(l,r,Math.max(y,baseTop),bottom,0,BIN.wall);panel(l,r,upper,top,0,BIN.wall);
+  }
+  reveal(l,r,bottom,upper,-.18);
+  if(kit?.kind==='meter-cabinet'){
+    const {x,y:cy}=kit.cabinet,at=(s,d)=>[a[0]+u[0]*s+n[0]*d,a[1]+u[1]*s+n[1]*d],half=CABINET.width/2+.01;
+    meterCabinet(geometry,kit.cabinet);street.propBlocks.push(...canopyObstacles([[at(x-half,0),at(x+half,0),at(x+half,CABINET.depth),at(x-half,CABINET.depth)]]));
+    record([x-half,x+half,cy,cy+CABINET.height]);
   }
 
   if(entrance){

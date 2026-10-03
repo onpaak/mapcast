@@ -19,6 +19,30 @@ export function surfaceTile(kind){
   return {name:`Shared_${kind}_64`,width,height,rgba,png:png(width,height,rgba)};
 }
 
+// Painted sheet steel for the ground-floor kit (shutters, service doors, cabinets): near-white
+// paint tinted per material, with broken rust clusters and vertical runoff. Covers 4 m and tiles
+// seamlessly, so shutter slats sample one continuous field instead of repeating per slat.
+export function weatheredPaintTile(){
+  const size=128,rgba=new Uint8Array(size*size*4);
+  const hash=(x,y,s)=>{let h=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(s,1597334677);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967295;};
+  // Value noise on a lattice of period size/cell in both axes, so the tile wraps.
+  const noise=(x,y,cx,cy,s)=>{
+    const px=size/cx,py=size/cy,fx=x/cx,fy=y/cy,ix=Math.floor(fx),iy=Math.floor(fy),tx=fx-ix,ty=fy-iy,u=tx*tx*(3-2*tx),v=ty*ty*(3-2*ty);
+    const h=(i,j)=>hash(((ix+i)%px+px)%px,((iy+j)%py+py)%py,s);
+    return (h(0,0)*(1-u)+h(1,0)*u)*(1-v)+(h(0,1)*(1-u)+h(1,1)*u)*v;
+  };
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const wx=x+4.5*(noise(x,y,16,16,1)-.5),wy=y+4*(noise(x,y,16,16,2)-.5);
+    const clusters=noise(wx,wy,16,16,3),broken=noise(wx,wy,2,4,4)*.55+noise(wx,wy,1,2,5)*.25+hash(x,y,6)*.2;
+    const wear=clusters>.6&&broken>.66,stain=Math.max(0,noise(wx,wy,4,32,7)-.62)*26;
+    const mottling=(noise(x,y,32,32,8)-.5)*12+(hash(x,y,9)-.5)*6-stain;
+    // Rust is stored warm and bright; multiplied by a paint tint it reads as dark oxide.
+    const color=wear?[212,153,121].map(v=>v-hash(x,y,10)*30):[235,235,232];
+    rgba.set([...color.map(v=>Math.max(0,Math.min(255,Math.round(v+mottling)))),255],(y*size+x)*4);
+  }
+  return {name:'Shared_weathered_paint_128',width:size,height:size,rgba,png:png(size,size,rgba)};
+}
+
 export function surfaceUV(mesh,anchor,scale=3,offset=0){
   const texcoords=[];
   for(let i=0;i<mesh.positions.length;i+=3){const x=mesh.positions[i]-anchor[0],y=mesh.positions[i+1],z=mesh.positions[i+2]-anchor[1],nx=mesh.normals[i],ny=mesh.normals[i+1];texcoords.push((Math.abs(ny)>.5?x:Math.abs(nx)>.5?z:x)/scale+offset,Math.abs(ny)>.5?z/scale:-y/scale);}

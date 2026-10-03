@@ -1,4 +1,4 @@
-import {surfaceTile} from '../concrete-materials.mjs';
+import {surfaceTile,weatheredPaintTile} from '../concrete-materials.mjs';
 import {signAtlas,signsOfKind} from '../neon-signs.mjs';
 import {placeholderBillboards,billboardCells} from '../billboards.mjs';
 import {propsAtlas,vendingAtlas} from '../street-props.mjs';
@@ -6,10 +6,13 @@ import {posterAtlas} from '../window-posters.mjs';
 import {facadeAtlas,facadeTints} from '../facade-atlas.mjs';
 
 // Every material and texture atlas the concrete city uses, registered on the scene once.
-// Building geometry is sorted into 13 "bins" per building; palette(seed) maps each bin to
-// its material so neighbouring buildings vary their wall and base finish.
-export const BIN={wall:0,recess:1,glass:2,metal:3,joint:4,roof:5,base:6,unlitGlass:7,warmGlass:8,door:9,fasciaTeal:10,fasciaCream:11,displayGlass:12};
-export const BIN_COUNT=13;
+// Building geometry is sorted into 18 "bins" per building; palette(seed) maps each bin to
+// its material so neighbouring buildings vary their wall and base finish. The last five hold
+// the ground-floor kit (roller shutters, service doors, vents, meter cabinets).
+export const BIN={wall:0,recess:1,glass:2,metal:3,joint:4,roof:5,base:6,unlitGlass:7,warmGlass:8,door:9,fasciaTeal:10,fasciaCream:11,displayGlass:12,shutter:13,zinc:14,enamel:15,serviceDoor:16,indicator:17};
+export const BIN_COUNT=18;
+// Kit bins carry the weathered paint tile, which covers 4 m.
+export const KIT_BINS=[BIN.shutter,BIN.zinc,BIN.enamel,BIN.serviceDoor];
 
 export function createCityMaterials(scene,{billboardSlots}={}){
   const pushMaterial=m=>{scene.materials.push(m);return scene.materials.length-1;};
@@ -30,6 +33,14 @@ export function createCityMaterials(scene,{billboardSlots}={}){
   // Shop windows glow faintly from inside at night; renderers dim this by day.
   const displayGlass=tiled('Shop display glass','glass',[.95,.94,.9,1]);scene.materials[displayGlass].emissiveFactor=[.025,.018,.01];
   const fasciaTeal=tiled('Faded teal shop fascia','metal',[.47,.84,.81,1]),fasciaCream=tiled('Cream shop fascia','plaster',[1,.98,.90,1]);
+
+  // Ground-floor kit finishes: one shared weathered paint tile, tinted so the painted
+  // areas land on the reviewed sRGB colours (the tile's paint is 235 grey).
+  const paint=pushTexture(weatheredPaintTile()),linear=c=>(c/=255)<=.04045?c/12.92:((c+.055)/1.055)**2.4;
+  const finish=(name,rgb,metallic=.25,roughness=.88)=>pushMaterial({name,pbrMetallicRoughness:{baseColorFactor:[...rgb.map(c=>Math.min(1,linear(c)/linear(235))),1],baseColorTexture:{index:paint},metallicFactor:metallic,roughnessFactor:roughness}});
+  const sage=finish('Faded sage shutter',[101,111,98]),blueSteel=finish('Faded blue steel',[65,84,87]),zinc=finish('Weathered zinc grey',[105,111,108]),enamel=finish('Aged enamel casing',[139,135,119]);
+  const shutters=[sage,blueSteel,zinc],serviceDoors=[blueSteel,sage];
+  const indicator=pushMaterial({name:'Cabinet indicator',pbrMetallicRoughness:{baseColorFactor:[.08,.32,.32,1],metallicFactor:0,roughnessFactor:.5},emissiveFactor:[.08,.55,.49],extensions:{KHR_materials_emissive_strength:{emissiveStrength:1.5}}});
 
   // Signs glow above the 0–1 emissive range via KHR_materials_emissive_strength so engines bloom them.
   const signs=signAtlas(),signTexture=pushTexture(signs.color);pushTexture(signs.emissive);
@@ -63,7 +74,9 @@ export function createCityMaterials(scene,{billboardSlots}={}){
     facadeMaterial:seed=>facadeMaterials[seed%walls.length],
     curtainMaterial,
     // Material for each geometry bin (see BIN), varied by the building seed.
-    palette:seed=>[walls[seed%walls.length],start+1,glass,metal,start+4,roof,seed%3===1?brick:darkBase,unlitGlass,warmGlass,door,fasciaTeal,fasciaCream,displayGlass],
+    // Kit colours use higher seed digits than the wall finish, so they vary independently.
+    palette:seed=>[walls[seed%walls.length],start+1,glass,metal,start+4,roof,seed%3===1?brick:darkBase,unlitGlass,warmGlass,door,fasciaTeal,fasciaCream,displayGlass,
+      shutters[Math.floor(seed/7)%shutters.length],zinc,enamel,serviceDoors[Math.floor(seed/11)%serviceDoors.length],indicator],
     signs:{
       front:frontSigns,vertical:verticalSigns,square:squareSigns,
       tower:signsOfKind(signs,'tower'),rooftop:signsOfKind(signs,'rooftop'),
