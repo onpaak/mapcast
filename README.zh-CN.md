@@ -90,6 +90,8 @@ node src/cli.mjs --input examples/block.json --out output/demo
 
 地图数据 © [OpenStreetMap 贡献者](https://www.openstreetmap.org/copyright)，采用 [开放数据库许可（ODbL）](https://opendatacommons.org/licenses/odbl/1-0/)。每个生成结果都附带 `ATTRIBUTION.txt`。发布用它制作的作品时，请按许可要求注明 OpenStreetMap。
 
+繁体书法字招牌的字形由 LXGW 的[霞鹜文楷 TC（LXGW WenKai TC）](https://github.com/lxgw/LxgwWenkaiTC)栅格化而来，采用 [SIL Open Font License 1.1](https://openfontlicense.org)。
+
 ## 许可证
 
 代码采用 [MIT 许可证](LICENSE)。生成的场景可以自由使用，但其中的地图数据仍需按上文要求注明 OpenStreetMap。

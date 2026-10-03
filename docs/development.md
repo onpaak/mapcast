@@ -38,6 +38,7 @@ src/
     roof-equipment.mjs           water tanks, plant rooms, condensers and antennas
   facade-atlas.mjs             painted facade atlas and its UV frames
   neon-signs.mjs, pixel-glyphs.mjs, sign-catalog.mjs   sign atlas, glyphs and the sign word list
+  brush-glyphs.mjs             24×24 brush-script Chinese for brush signs (baked by tools/brush-glyphs.mjs)
   billboards.mjs, billboard-art.mjs  rooftop billboards and their pixel-art posters
   street-props.mjs, window-posters.mjs, shop-*.mjs, public-hall.mjs, ...
   glb.mjs, png.mjs             glTF and PNG writers

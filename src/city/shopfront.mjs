@@ -4,6 +4,7 @@ import {shopSignFace} from '../shop-signs.mjs';
 import {shopBlade} from '../shop-blade.mjs';
 import {windowPoster,posterTitles} from '../window-posters.mjs';
 import {standingSign} from '../street-props.mjs';
+import {sameTrade} from '../neon-signs.mjs';
 import {BIN} from './materials.mjs';
 import {kitAllowed,shutterState,rollerShutter} from './ground-floor-kit.mjs';
 
@@ -62,7 +63,11 @@ export function buildShopfrontBay(city,building,edgeInfo,bay,out){
   const fasciaBin=[BIN.door,BIN.fasciaTeal,BIN.fasciaCream][(seed+(col<door?0:1))%3];
   if(retail||shopBay)box(left+.12,right-.12,upper+.12,Math.min(top-.08,upper+.42),.025,.005,fasciaBin);
   if(shopEntry||retail&&entrance){
+    // One trade per shop: the projecting blade and the pavement lightbox advertise the same
+    // business as the fascia, or are left out when the catalog has nothing matching.
     const sign=signs.front[stableSeed(`${id}:shop:${col<door?'left':'right'}`)%signs.front.length];
+    const ofTrade=pool=>pool.filter(e=>e.id!==sign.id&&sameTrade(e,sign));
+    const bladePool=ofTrade(signs.blade),standPool=ofTrade(signs.standing);
     const signBottom=upper+.20,signTop=Math.min(top-.08,upper+.70);
     const signWidth=Math.min(bw-.36,(signTop-signBottom)*sign.aspect),center=(left+right)/2;
     const face=shopSignFace(a,u,n,center-signWidth/2,center+signWidth/2,signBottom,signTop,sign.uv);
@@ -71,8 +76,8 @@ export function buildShopfrontBay(city,building,edgeInfo,bay,out){
       box(center-signWidth/2-.025,center+signWidth/2+.025,signBottom-.015,signTop+.015,.03,.005,BIN.metal);
       scene.objects.push({name:source.name+`_ShopSign_${edge}_${col}`,...face,material:signMaterials[sign.style],extras:{sourceId:id,sceneModule:'Buildings',fictionalSign:true}});
       state.shopSigns.push({sourceId:id,edge,bay:col,text:sign.text,signId:sign.id,textSource:'fictional-style-palette',bounds:[center-signWidth/2,center+signWidth/2,signBottom,signTop]});
-      if(stableSeed(`${id}:blade:${col}`)%3===0){
-        const bladeSign=signs.blade[stableSeed(`${id}:blade-art:${col}`)%signs.blade.length],height=bladeHeight(bladeSign);
+      if(stableSeed(`${id}:blade:${col}`)%3===0&&bladePool.length){
+        const bladeSign=bladePool[stableSeed(`${id}:blade-art:${col}`)%bladePool.length],height=bladeHeight(bladeSign);
         const blade=shopBlade({a,u,n,along:left+.10,bottom:signBottom,top:signBottom+height,end:.08+height*bladeSign.aspect,uv:bladeSign.uv,obstacles:street.bladeBlocks});
         if(blade){
           out.emit(blade.housing,BIN.metal);street.bladeBlocks.push(...canopyObstacles([blade.footprint]));
@@ -87,8 +92,8 @@ export function buildShopfrontBay(city,building,edgeInfo,bay,out){
       state.canopies.push({sourceId:id,objectName:source.name,edge,bay:col,depth:canopy.depth,footprint:canopy.footprint,base:upper+.06});
     }
     const standKey=`${id}:stand:${edge}:${col}`;
-    if(stableSeed(standKey)%100<55){
-      const entry=signs.standing[stableSeed(standKey+':art')%signs.standing.length];
+    if(stableSeed(standKey)%100<55&&standPool.length){
+      const entry=standPool[stableSeed(standKey+':art')%standPool.length];
       const probe=standingSign({a,u,n,along:l-.3,offset:1,sign:entry}),base=street.baseAt(probe.footprint);
       const stand=standingSign({a,u,n,along:l-.3,offset:1,sign:entry,base:base??0});
       if(base!==undefined&&street.fits(stand.footprint)){

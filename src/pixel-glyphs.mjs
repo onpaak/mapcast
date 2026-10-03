@@ -1,4 +1,5 @@
 import {signFont} from './shop-signs.mjs';
+import {brushGlyphs,BRUSH_GLYPH_SIZE} from './brush-glyphs.mjs';
 // Original hand-drawn pixel glyphs and icons for fictional signage. No font files are used.
 // Kana, kanji and hanzi sit on a 12×12 grid; Latin letters and digits on 5×7; icons on 16×16.
 // Kana, hanzi and hangul cover only the words in src/sign-catalog.mjs; Latin covers A–Z and 0–9.
@@ -108,8 +109,18 @@ export const iconGlyphs={
 export const verticalForm=ch=>ch==='ー'?'丨':ch;
 
 
-// Bitmap of one glyph or {icon} as rows of 0 (empty), 1 (ink) or 2 (accent).
-export function glyph(ch){
+// Brush-script 24×24 Chinese for catalog entries marked brush, decoded once from src/brush-glyphs.mjs.
+const brushCache=new Map();
+export const hasBrushGlyph=ch=>ch in brushGlyphs;
+function brushGlyph(ch){
+ if(!brushCache.has(ch)){const hex=brushGlyphs[ch];brushCache.set(ch,Array.from({length:BRUSH_GLYPH_SIZE},(_,y)=>{const bits=parseInt(hex.slice(y*6,y*6+6),16);return Array.from({length:BRUSH_GLYPH_SIZE},(_,x)=>bits>>(BRUSH_GLYPH_SIZE-1-x)&1);}));}
+ return brushCache.get(ch);
+}
+
+// Bitmap of one glyph or {icon} as rows of 0 (empty), 1 (ink) or 2 (accent). With brush, Chinese
+// characters come from the 24×24 brush-script set instead of the 12×12 hand-drawn one.
+export function glyph(ch,{brush=false}={}){
+ if(brush&&brushGlyphs[ch])return brushGlyph(ch);
  if(ch.startsWith('{')&&iconGlyphs[ch.slice(1,-1)])return iconGlyphs[ch.slice(1,-1)].map(r=>[...r].map(c=>c==='#'?1:c==='+'?2:0));
  if(kanaGlyphs[ch])return kanaGlyphs[ch].map(r=>[...r].map(c=>c==='#'?1:0));
  if(latinGlyphs[ch])return latinGlyphs[ch].map(r=>[...r].map(c=>c==='1'?1:0));

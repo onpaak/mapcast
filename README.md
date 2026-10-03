@@ -88,6 +88,8 @@ Import notes for [Blender and Unreal Engine](docs/blender-unreal.md).
 
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the [Open Database License](https://opendatacommons.org/licenses/odbl/1-0/). Every generated scene includes an `ATTRIBUTION.txt`. When you publish work made with it, credit OpenStreetMap as the licence requires.
 
+The brush-script Chinese signs are rasterised from [LXGW WenKai TC](https://github.com/lxgw/LxgwWenkaiTC) by LXGW, under the [SIL Open Font License 1.1](https://openfontlicense.org).
+
 ## License
 
 The code is released under the [MIT License](LICENSE). Scenes you generate are yours to use; the OpenStreetMap credit above still applies to the map data in them.

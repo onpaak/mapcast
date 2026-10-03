@@ -114,12 +114,16 @@ Words are generic shop categories such as ラーメン, カラオケ, 宵夜, �
 
 The words and designs are listed in `src/sign-catalog.mjs`, a mix of Japanese, Chinese, Korean and English. Each entry names its kind (front, vertical, square, tower or rooftop), text, style, colour scheme and frame. Latin covers A–Z and 0–9, so any English word works; kana, hanzi and hangul exist only for the characters the catalog uses.
 
+A few Cantonese trades are written in brush-script Traditional Chinese (`brush: true`): 茶餐廳, 藥房, 燒臘, 酒樓, 金行珠寶, 海味乾貨, 汽車維修 and 糖水甜品. Their characters are 24 × 24 bitmaps in `src/brush-glyphs.mjs`, drawn at the same size as the 12 × 12 set with four times the detail. `tools/brush-glyphs.mjs` bakes them from [LXGW WenKai TC](https://github.com/lxgw/LxgwWenkaiTC) (SIL Open Font License 1.1): download `LXGWWenKaiTC-Medium.ttf` to `cache/fonts/` and run `node tools/brush-glyphs.mjs` after adding a brush entry. The font itself is not part of the repository. A fascia needs about three characters or more: the band above a shop window can be under 20 cm tall, and a sign narrower than 0.5 m is left out. Rooftop letters and billboards keep their original designs.
+
+Every entry names its `business`, the trade it advertises; pictogram boxes can serve several (the coffee cup fits cafés, 冰室 and 茶餐廳). A shop's projecting blade and pavement lightbox advertise the same trade as its fascia, and are left out when the catalog has nothing matching. Japanese and Korean words for the same trade count as different trades, so a カラオケ shop never gets a 노래방 lightbox. Vertical signs higher up stand for other businesses in the building and are chosen independently.
+
 Glass curtain walls and towers of 12 storeys or more carry none of the wall-mounted signs below, only rooftop billboards and letters.
 
 | Sign | Placement | Metadata |
 | --- | --- | --- |
 | Shop fascia lightbox | Above the entrance and display windows of shops; width follows the text | `shopSigns` |
-| Projecting blade | Beside some shop signs, double-sided, at least 2.6 m above the pavement | `shopBlades` |
+| Projecting blade | Beside some shop signs, double-sided, at least 2.6 m above the pavement, in the shop's trade | `shopBlades` |
 | Tower sign | One per street front of shop buildings of 3+ storeys (about 85%; 12% for other buildings). It hangs at an end joint so towers line up along the street. It is about 1.3 m wide and spans two or three floors, shrinking to fit, down to about 0.95 m. The same design is not repeated within 40 m. | `streetSigns` (`kind: tower`) |
 | Vertical signs and square icon boxes | At bay joints above the ground floor, double-sided, in three widths. About a third are square pictograms. They are denser on shop buildings and staggered on blocks of 5+ storeys. | `streetSigns` |
 | Rooftop billboard | About 22% of buildings of 12 m or more, on the front edge. It has a 2:1 face, a steel frame, a catwalk and three floodlights. The whole structure must stand on the roof, clear of courtyards and the stair core. Nearby billboards show different art. | `billboards` |
@@ -137,7 +141,7 @@ All prop placement is inferred. It is recorded in `metadata.json` → `streetPro
 | --- | --- |
 | Air-conditioning units | Under about 7% of painted windows up to the 8th floor, except on offices |
 | Vending machines | About 6% of street-facing ground-floor bays, never next to a door. Wide bays often get a pair. The front glows at night. |
-| Standing lightboxes | Beside about half of shop entrances, 1.2 m tall, double-sided |
+| Standing lightboxes | Beside about half of shop entrances, 1.2 m tall, double-sided, showing the shop's own trade (none when the catalog has no matching art) |
 
 Street lamps are cool-white curved-arm lamps, roughly every 32 m along roads, standing on the pavement. They are one shared mesh, instanced by position and rotation.
 

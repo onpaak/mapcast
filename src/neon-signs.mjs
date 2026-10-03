@@ -1,5 +1,5 @@
 import {png} from './png.mjs';
-import {glyph,kanaGlyphs,verticalForm} from './pixel-glyphs.mjs';
+import {glyph,kanaGlyphs,verticalForm,hasBrushGlyph} from './pixel-glyphs.mjs';
 import {extrude} from './geometry.mjs';
 import {shopSignFace} from './shop-signs.mjs';
 
@@ -42,25 +42,30 @@ const FRAME_WIDTH={plain:2,thick:4,bulbs:6,cap:2};
 const frameOf=entry=>entry.kind==='rooftop'?0:FRAME_WIDTH[entry.frame??'plain'];
 const tokens=text=>text.match(/\{[a-z]+\}|./gu)??[];
 // Kana, hanzi and icons carry their own margins; 5×7 Latin letters need a gap.
-const wide=ch=>ch in kanaGlyphs||ch.startsWith('{');
+const wide=(ch,brush)=>ch in kanaGlyphs||ch.startsWith('{')||brush&&hasBrushGlyph(ch);
 
-function layout(text,{kana,latin,icon=kana,vertical}){
+// kana is the scale of a 12-cell character; brush-script entries (24×24 glyphs) scale to the
+// same size, so they fit the same sign dimensions with four times the detail.
+function layout(text,{kana,latin,icon=kana,vertical,brush=false}){
  const list=tokens(text),marks=[];let pen=0;
  for(const raw of list){
   const ch=vertical?verticalForm(raw):raw;
-  if(ch===' '){pen+=wide(list[0])?8*kana:3*latin;continue;}
-  const bitmap=glyph(ch),scale=ch.startsWith('{')?icon:wide(ch)?kana:latin,w=bitmap[0].length*scale,h=bitmap.length*scale;
+  if(ch===' '){pen+=wide(list[0],brush)?8*kana:3*latin;continue;}
+  const bitmap=glyph(ch,{brush}),scale=ch.startsWith('{')?icon:wide(ch,brush)?kana*12/bitmap.length:latin,w=bitmap[0].length*scale,h=bitmap.length*scale;
   marks.push({bitmap,offset:pen,scale,w,h});
-  pen+=(vertical?h:w)+(wide(ch)?0:latin);
+  pen+=(vertical?h:w)+(wide(ch,brush)?0:latin);
  }
- const trailing=list.length&&!wide(list.at(-1))?latin:0;
+ const trailing=list.length&&!wide(list.at(-1),brush)?latin:0;
  return {marks,length:pen-trailing,thickness:Math.max(0,...marks.map(m=>vertical?m.w:m.h))};
 }
 
 // Tower sections stack top to bottom: big vertical text or icons, or small:… horizontal lines.
 function towerSections(entry){
- return entry.sections.map(section=>section.startsWith('small:')?{small:true,text:layout(section.slice(6),{kana:1,latin:1})}:{small:false,text:layout(section,{...TOWER,vertical:true})});
+ const brush=entry.brush===true;
+ return entry.sections.map(section=>section.startsWith('small:')?{small:true,text:layout(section.slice(6),{kana:1,latin:1,brush})}:{small:false,text:layout(section,{...TOWER,vertical:true,brush})});
 }
+
+const textLayout=entry=>layout(entry.text,{...(entry.kind==='rooftop'?{kana:ROOF_KANA,latin:ROOF_LATIN}:{kana:KANA,latin:LATIN,vertical:entry.kind==='vertical'}),brush:entry.brush===true});
 
 function entrySize(entry){
  const f=frameOf(entry)*2;
@@ -68,7 +73,7 @@ function entrySize(entry){
   const parts=towerSections(entry),across=Math.max(...parts.map(p=>p.small?p.text.length:p.text.thickness));
   return [Math.max(40,across+f+8),parts.reduce((s,p)=>s+(p.small?p.text.thickness:p.text.length)+8,0)+f+4];
  }
- const t=layout(entry.text,entry.kind==='rooftop'?{kana:ROOF_KANA,latin:ROOF_LATIN}:{kana:KANA,latin:LATIN,vertical:entry.kind==='vertical'});
+ const t=textLayout(entry);
  if(entry.kind==='vertical')return [Math.max(32,t.thickness+f+6),t.length+f+8];
  if(entry.kind==='rooftop')return [t.length+12,Math.max(44,t.thickness+8)];
  if(entry.kind==='square'){const side=Math.max(t.length,t.thickness)+f+8;return [side,side];}
@@ -78,8 +83,10 @@ function entrySize(entry){
 // Ink mask in entry-local pixels (1 ink, 2 accent) plus separator rows for towers.
 function inkMask(entry,r){
  const ink=new Uint8Array(r.w*r.h),rules=[];
- const stamp=(m,x0,y0)=>m.bitmap.forEach((row,gy)=>row.forEach((value,gx)=>{if(!value)return;for(let dy=0;dy<m.scale;dy++)for(let dx=0;dx<m.scale;dx++){
-  const px=Math.round(x0+gx*m.scale+dx),py=Math.round(y0+gy*m.scale+dy);if(px>=0&&py>=0&&px<r.w&&py<r.h)ink[py*r.w+px]=value;}}));
+ // Nearest-neighbour stamp; any scale, including the half steps of 24×24 glyphs.
+ const stamp=(m,x0,y0)=>{for(let ty=0;ty<m.h;ty++)for(let tx=0;tx<m.w;tx++){
+  const value=m.bitmap[Math.floor(ty/m.scale)][Math.floor(tx/m.scale)];if(!value)continue;
+  const px=Math.round(x0+tx),py=Math.round(y0+ty);if(px>=0&&py>=0&&px<r.w&&py<r.h)ink[py*r.w+px]=value;}};
  if(entry.kind==='tower'){
   let y=frameOf(entry)+6;
   towerSections(entry).forEach((part,i,all)=>{
@@ -89,7 +96,7 @@ function inkMask(entry,r){
   });
   return {ink,rules};
  }
- const vertical=entry.kind==='vertical',text=layout(entry.text,entry.kind==='rooftop'?{kana:ROOF_KANA,latin:ROOF_LATIN}:{kana:KANA,latin:LATIN,vertical});
+ const vertical=entry.kind==='vertical',text=textLayout(entry);
  for(const m of text.marks){
   const along=(vertical?r.h:r.w)/2-text.length/2+m.offset,across=((vertical?r.w:r.h)-(vertical?m.w:m.h))/2;
   stamp(m,vertical?across:along,vertical?along:across);
@@ -156,6 +163,8 @@ export function signAtlas(catalog=signCatalog){
 const uvOf=(r,height)=>({u0:(r.x+.5)/WIDTH,u1:(r.x+r.w-.5)/WIDTH,v0:(r.y+.5)/height,v1:(r.y+r.h-.5)/height});
 
 export const signsOfKind=(atlas,kind)=>Object.values(atlas.entries).filter(e=>e.kind===kind);
+// True when two catalog entries advertise a common trade (business may be one name or a list).
+export const sameTrade=(a,b)=>[a.business??[]].flat().some(t=>[b.business??[]].flat().includes(t));
 
 // Rooftop channel letters: an alpha-cut face set back from the front edge on a steel frame.
 export function rooftopSign({a,u,n,center,width,height,roof,uv,setback=1.2}){
