@@ -3,6 +3,10 @@ import {png} from './png.mjs';
 const sub=(a,b)=>a.map((v,i)=>v-b[i]),dot=(a,b)=>a.reduce((s,v,i)=>s+v*b[i],0);
 const norm=a=>{const l=Math.hypot(...a);return a.map(v=>v/l);};
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+// glTF base colour factors are linear and textures sRGB: decode, multiply, re-encode, so dark
+// tints look as they do in Blender, Unreal and the web viewer. Lighting stays a simple sRGB blend.
+const LINEAR=Float64Array.from({length:256},(_,i)=>{const c=i/255;return c<=.04045?c/12.92:((c+.055)/1.055)**2.4;});
+const encode=c=>255*(c<=.0031308?c*12.92:1.055*c**(1/2.4)-.055);
 export function renderPreview(scene,{width=960,height=540,eye=scene.metadata.previewCamera?.eye??[0,4,85],target=scene.metadata.previewCamera?.target??[0,5,-70],fogDistance=350,ambient=.52,direct=.48,sunDirection=[-.4,.8,.25],skyTop=[55,65,95],skyBottom=[100,103,115],fogColor=[94,94,110]}={}){
   const forward=norm(sub(target,eye)),right=norm(cross(forward,[0,1,0])),up=cross(right,forward),scale=height*.86;
   const rgba=new Uint8Array(width*height*4),depth=new Float64Array(width*height).fill(Infinity);
@@ -34,10 +38,10 @@ export function renderPreview(scene,{width=960,height=540,eye=scene.metadata.pre
           const w0=((b[1]-c[1])*(x+.5-c[0])+(c[0]-b[0])*(y+.5-c[1]))/den,w1=((c[1]-a[1])*(x+.5-c[0])+(a[0]-c[0])*(y+.5-c[1]))/den,w2=1-w0-w1;
           if(w0<0||w1<0||w2<0)continue;
           const z=1/(w0/a[2]+w1/b[2]+w2/c[2]),px=y*width+x;if(z>=depth[px])continue;depth[px]=z;
-          let color=base.slice(0,3).map(v=>v*255),emission=(mat.emissiveFactor??[0,0,0]).map(v=>v*90);
+          let color=base.slice(0,3).map(encode),emission=(mat.emissiveFactor??[0,0,0]).map(v=>v*90);
           const u=(w0*a[3]/a[2]+w1*b[3]/b[2]+w2*c[3]/c[2])*z,v=(w0*a[4]/a[2]+w1*b[4]/b[2]+w2*c[4]/c[2])*z;
           const sample=image=>{const tx=Math.floor(((u%1)+1)%1*image.width),ty=Math.floor(((v%1)+1)%1*image.height);return Array.from(image.rgba.slice((ty*image.width+tx)*4,(ty*image.width+tx)*4+3));};
-          if(texture)color=sample(texture).map((value,index)=>value*base[index]);
+          if(texture)color=sample(texture).map((value,index)=>encode(LINEAR[value]*base[index]));
           if(glow)emission=sample(glow).map((value,index)=>value*mat.emissiveFactor[index]);
           const f=1-Math.exp(-z/fogDistance);
           rgba.set([...color.map((v,j)=>Math.min(255,Math.max(0,(v*light+emission[j])*(1-f)+fog[j]*f))),255],px*4);
