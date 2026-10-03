@@ -89,6 +89,10 @@ export function createStreetContext(base,scene,sources){
       const on=[...ring,c].map(q=>pavement.some(t=>insidePolygon(q,[...t,t[0]]))),count=on.filter(Boolean).length;
       return count===on.length?PAVEMENT_TOP:count===0?0:undefined;
     },
+    // True when a point lies on a road strip (with its kerb margin) or a junction surface.
+    onCarriageway(p){
+      return roadRings.some(r=>insidePolygon(p,r))||roadFaces.some(t=>insidePolygon(p,[...t,t[0]]));
+    },
     // True when a pavement footprint overlaps no building, road or earlier prop.
     fits(ring){
       const xs=ring.map(p=>p[0]),zs=ring.map(p=>p[1]),box=[Math.min(...xs),Math.min(...zs),Math.max(...xs),Math.max(...zs)];

@@ -43,6 +43,31 @@ export function weatheredPaintTile(){
   return {name:'Shared_weathered_paint_128',width:size,height:size,rgba,png:png(size,size,rgba)};
 }
 
+// Grey, worn painted timber for bench slats: grain along x, the odd split, patches of old green
+// paint. Tiles every 1.7 m along the slats.
+export function timberTile(){
+  const size=64,rgba=new Uint8Array(size*size*4);
+  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const noise=((Math.imul(x+19,73856093)^Math.imul(y+41,19349663))>>>0)%9-4;
+    const grain=Math.sin(y*1.46+Math.sin(x*.1)*1.3)*9+Math.sin(y*5.4)*3,split=Math.abs(Math.sin(y*.58+Math.sin(x*.088)*.3))<.035?32:0;
+    const oldPaint=Math.sin(x*.19+1.3)*Math.cos(y*.37)>.8;
+    rgba.set([...(oldPaint?[80,90,84]:[98,92,76]).map(v=>Math.max(0,Math.min(255,Math.round(v+grain+noise-split)))),255],(y*size+x)*4);
+  }
+  return {name:'Shared_timber_64',width:size,height:size,rgba,png:png(size,size,rgba)};
+}
+
+// Vertical railing bars as an alpha-cut strip: one bar per tile width (0.155 m), charcoal
+// steel with rust creeping up from the bottom. Used on a single double-sided panel per section.
+export function railingBarsTile(){
+  const width=16,height=64,rgba=new Uint8Array(width*height*4);
+  for(let y=0;y<height;y++)for(let x=0;x<width;x++){
+    if(x<6||x>8)continue;
+    const noise=((Math.imul(x+3,73856093)^Math.imul(y+7,19349663))>>>0)%7-3,rust=y>54&&(x+y)%3!==0;
+    rgba.set([...(rust?[96,58,34]:[62,68,65]).map(v=>v+noise+(x===6?12:0)),255],(y*width+x)*4);
+  }
+  return {name:'Railing_bars_16x64',width,height,rgba,png:png(width,height,rgba)};
+}
+
 export function surfaceUV(mesh,anchor,scale=3,offset=0){
   const texcoords=[];
   for(let i=0;i<mesh.positions.length;i+=3){const x=mesh.positions[i]-anchor[0],y=mesh.positions[i+1],z=mesh.positions[i+2]-anchor[1],nx=mesh.normals[i],ny=mesh.normals[i+1];texcoords.push((Math.abs(ny)>.5?x:Math.abs(nx)>.5?z:x)/scale+offset,Math.abs(ny)>.5?z/scale:-y/scale);}

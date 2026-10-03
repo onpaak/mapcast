@@ -147,13 +147,31 @@ Street lamps are cool-white curved-arm lamps, roughly every 32 m along roads, st
 
 Props stand either fully on the pavement or fully on the ground, never across the kerb. Overhead wires are not generated: without poles and wall brackets they would appear out of nowhere, and OSM rarely maps them.
 
+### Mapped street furniture
+
+Benches, litter bins, bicycle racks and railings appear only where OpenStreetMap maps them; nothing is added elsewhere, so streets with little mapping stay plain. Their look is one kit of cast concrete, painted steel and worn timber, not a survey of the real objects. The objects are named `StreetFurniture_*`, and `metadata.json` → `streetFurniture` records every mapped item: where it went, its facing and why it came from the map or was inferred, or why it was left out.
+
+| OSM | Model |
+| --- | --- |
+| `amenity=bench` | Bench on two concrete supports with timber slats and no armrests; `backrest=no` drops the back |
+| `amenity=waste_basket` | Painted steel bin in a concrete frame |
+| `amenity=bicycle_parking` (point) | One steel hoop stand |
+| `amenity=bicycle_parking` (area) | A row of stands along the longest side: `capacity` / 2 (2 by default), at least 0.9 m apart and inside the area |
+| `barrier=fence`, `railing`, `guard_rail`, `handrail` | Steel railing on a low concrete plinth: posts, two rails and one alpha-cut panel of bars per section. Height from `height`, else 1.47 m for fences, 1.05 m for railings and 0.8 m for guard rails |
+
+- Facing follows `direction` when mapped; otherwise the item faces the nearest mapped road or path, square to it.
+- Items stand fully on the pavement or fully on the ground. Anything that would cross the kerb, stand on a road, overlap a building, or overlap a vending machine, pavement lightbox or another item is left out. So are indoor items and those on another `level`.
+- Railings leave a clear opening at mapped gates (`barrier=gate`, `entrance`, …; the gate leaves are not modelled) and stop where they would cross a carriageway.
+- Walls, hedges, kerbs and bollards are not modelled.
+- Lite detail has no street furniture.
+
 ## Quieter low-rise areas
 
 Where buildings within 80 m average fewer than 3 storeys, as in villages and suburbs, the street stays calm. There are no tower signs, billboards or rooftop letters. Only shops keep vertical signs and vending machines.
 
 ## Lite detail
 
-`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors or shopfronts. It also drops air-conditioning units, vending machines and standing lightboxes. Signs, billboards and lamps stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
+`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors or shopfronts. It also drops air-conditioning units, vending machines, standing lightboxes and mapped street furniture. Signs, billboards and lamps stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
 
 ## Roads and ground
 

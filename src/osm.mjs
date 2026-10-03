@@ -6,6 +6,7 @@ import {relationPolygons} from './relations.mjs';
 import {polygonsOverlap,insidePolygon,interiorPoint} from './spatial.mjs';
 import {environmentKind} from './environment.mjs';
 import {isShopPOI} from './shop-pois.mjs';
+import {furnitureKind} from './street-furniture.mjs';
 import {validateArea,areaBounds,clipLineToArea,clipRingToArea} from './area.mjs';
 
 export const OSM_SOURCE={name:'OpenStreetMap',attribution:'© OpenStreetMap contributors',copyrightUrl:'https://www.openstreetmap.org/copyright',license:'ODbL-1.0',licenseUrl:'https://opendatacommons.org/licenses/odbl/1-0/'};
@@ -28,7 +29,7 @@ export function expandBounds(input,requestedMeters=100){
 }
 export function buildQuery(bounds) {
   const [w,s,e,n]=validateBounds(bounds),box=`${s},${w},${n},${e}`;
-  return `[out:json][timeout:25];(node["shop"](${box});node["amenity"~"^(cafe|restaurant|bar|fast_food)$"](${box});way["building"](${box});way["building:part"](${box});way["highway"](${box});relation["building"](${box});relation["building:part"](${box});way["natural"~"^(water|wood)$"](${box});way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});way["leisure"~"^(park|garden|nature_reserve)$"](${box});way["waterway"="riverbank"](${box});relation["natural"~"^(water|wood)$"](${box});relation["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});relation["leisure"~"^(park|garden|nature_reserve)$"](${box}););(._;>;);out body geom;`;
+  return `[out:json][timeout:25];(node["shop"](${box});node["amenity"~"^(cafe|restaurant|bar|fast_food|bench|waste_basket|bicycle_parking)$"](${box});node["barrier"~"^(gate|entrance|lift_gate|swing_gate|opening|kissing_gate)$"](${box});way["barrier"~"^(fence|railing|guard_rail|handrail)$"](${box});way["amenity"="bicycle_parking"](${box});way["building"](${box});way["building:part"](${box});way["highway"](${box});relation["building"](${box});relation["building:part"](${box});way["natural"~"^(water|wood)$"](${box});way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});way["leisure"~"^(park|garden|nature_reserve)$"](${box});way["waterway"="riverbank"](${box});relation["natural"~"^(water|wood)$"](${box});relation["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});relation["leisure"~"^(park|garden|nature_reserve)$"](${box}););(._;>;);out body geom;`;
 }
 // Liang-Barsky clipping preserves breaks when roads leave the selection.
 export function clipLine(points,b) {
@@ -92,7 +93,18 @@ export function fromOverpass(raw,{bounds,area,provenance={}}={}) {
     }catch(error){if(part)diagnostics.invalidParts++;else if(building)diagnostics.invalidBuildings++;else diagnostics.invalidEnvironment++;warnings.push({id:`relation/${e.id}`,reason:error.message});}
   }
   for(const e of raw.elements) {
-    if(e.type!=='way'||(!e.tags?.building&&!isBuildingPart(e.tags)&&!e.tags?.highway&&!environmentKind(e.tags)))continue;
+    if(e.type!=='way')continue;
+    // Railings and bicycle-parking areas for the street furniture layer.
+    const furnitureLine=!e.tags?.building&&!e.tags?.highway&&furnitureKind(e.tags,'LineString'),furnitureArea=!e.tags?.building&&furnitureKind(e.tags,'Polygon');
+    if(furnitureLine||furnitureArea){
+      const coords=(e.geometry??e.nodes?.map(n=>nodes.get(n)))?.map(c=>c&&[c.lon,c.lat]);
+      if(!coords||coords.length<2||coords.some(c=>!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))){warnings.push({id:`way/${e.id}`,reason:'Missing geometry or unresolved node references'});continue;}
+      const closed=coords.length>=4&&coords[0][0]===coords.at(-1)[0]&&coords[0][1]===coords.at(-1)[1];
+      if(furnitureArea&&closed){if(intersects([coords]))features.push({type:'Feature',id:`way/${e.id}`,properties:e.tags,geometry:{type:'Polygon',coordinates:[coords]}});}
+      else if(furnitureLine){const parts=area?clipLineToArea(coords,area):bounds?clipLine(coords,bounds):[coords];parts.forEach((line,i)=>{if(line.length>1)features.push({type:'Feature',id:`way/${e.id}/${i}`,properties:{...e.tags,osm_id:`way/${e.id}`},geometry:{type:'LineString',coordinates:line}});});}
+      continue;
+    }
+    if(!e.tags?.building&&!isBuildingPart(e.tags)&&!e.tags?.highway&&!environmentKind(e.tags))continue;
     const id=`way/${e.id}`,p=e.tags,environment=environmentKind(p);
     // A way tagged both building and building:part is a section of a larger building.
     const partFeature=isBuildingPart(p),buildingFeature=!partFeature&&isBuilding(p.building);
@@ -136,6 +148,7 @@ export function fromOverpass(raw,{bounds,area,provenance={}}={}) {
     let point;try{point=interiorPoint(ring.map(([x,y])=>[x*1e5,y*1e5])).map(v=>v/1e5);}catch{continue;}
     if(outlines.some(poly=>insidePolygon(point,poly[0])&&!poly.slice(1).some(h=>insidePolygon(point,h))))features.push(f);
   }
+  for(const node of nodes.values())if(!isShopPOI(node.tags)&&furnitureKind(node.tags,'Point')&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
   for(const node of nodes.values())if(isShopPOI(node.tags)&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
   return {type:'FeatureCollection',features,selectionBounds:bounds,...(area?{selectionArea:[...area,area[0]]}:{}),diagnostics,source:{...OSM_SOURCE,...provenance,dataTimestamp:raw.osm3s?.timestamp_osm_base},warnings};
 }

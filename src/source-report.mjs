@@ -1,4 +1,5 @@
 import {project} from './geometry.mjs';
+import {furnitureKind} from './street-furniture.mjs';
 import {roadSurface} from './road-network.mjs';
 import {environmentKind} from './environment.mjs';
 import {isBuildingPart} from './osm.mjs';
@@ -6,11 +7,11 @@ const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 export function sourceReport(data,scene){
   const generated=new Map();
   // An outline replaced by its building:part sections counts as generated through them.
-  for(const o of scene.objects)for(const id of [o.extras?.sourceId,o.extras?.outlineId]){if(id===undefined)continue;const key=String(id);if(!generated.has(key))generated.set(key,[]);generated.get(key).push(o);}
+  for(const o of scene.objects)for(const id of [o.extras?.sourceId,o.extras?.outlineId,...(o.extras?.sourceIds??[])]){if(id===undefined)continue;const key=String(id);if(!generated.has(key))generated.set(key,[]);generated.get(key).push(o);}
   const entries=data.features.map(f=>{
     const id=String(f.id),objects=generated.get(id)??[],osmId=id.match(/^(node|way|relation)\/\d+/)?.[0];
     const surface=objects[0]?.extras.path?roadSurface(objects[0].extras):undefined;
-    const kind=isBuildingPart(f.properties)?'building-part':f.properties?.building&&String(f.properties.building).toLowerCase()!=='no'?'building':f.properties?.highway?'road':environmentKind(f.properties)?'environment':'excluded';
+    const kind=isBuildingPart(f.properties)?'building-part':f.properties?.building&&String(f.properties.building).toLowerCase()!=='no'?'building':f.properties?.highway?'road':environmentKind(f.properties)?'environment':furnitureKind(f.properties,f.geometry?.type)?'street-furniture':'excluded';
     return {featureId:id,osmUrl:osmId?'https://www.openstreetmap.org/'+osmId:undefined,name:f.properties?.name,kind,environment:environmentKind(f.properties),generated:objects.length>0,skipReasons:objects.length?[]:[...(scene.metadata.warnings??[]),...(scene.metadata.omissions??[])].filter(w=>String(w.id)===id).map(w=>w.reason),objectNames:objects.map(o=>o.name),height:objects[0]?.extras.height,heightSource:objects[0]?.extras.heightSource,width:objects[0]?.extras.width,widthSource:objects[0]?.extras.widthSource,highway:objects[0]?.extras.highway,surface:f.properties?.surface,surfaceKind:surface?.kind,holeCount:objects.reduce((n,o)=>n+(o.extras.holes?.length??0),0),memberIds:f.properties?.osm_member_ids};
   });
   const buildings=entries.filter(e=>e.kind==='building'&&e.generated),roads=entries.filter(e=>e.kind==='road'&&e.generated),environment=entries.filter(e=>e.kind==='environment'&&e.generated);

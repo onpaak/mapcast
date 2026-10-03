@@ -57,6 +57,11 @@ try {
     report.index.summary.walkingSurfaces={mapped:records.length,generated:records.filter(r=>r.status==='generated').length,coveredOrBlocked:records.filter(r=>r.status!=='generated').length};
     for(const r of records){const entry=report.index.features.find(f=>f.featureId===String(r.sourceId));if(entry){entry.walkingSurface=r;entry.generated=r.status==='generated';if(!entry.generated){entry.objectNames=[];entry.skipReasons=['Mapped route covered by existing paving or blocked by buildings, roads or water'];}}}
   }
+  // Street furniture is placed by the concrete preset, after the base scene the report reads.
+  if(scene.metadata.streetFurniture){
+    report.index.summary.streetFurniture=scene.metadata.streetFurnitureSummary;
+    for(const r of scene.metadata.streetFurniture){const entry=report.index.features.find(f=>f.featureId===String(r.sourceId));if(entry){entry.streetFurniture=r;entry.generated=r.status==='generated';entry.skipReasons=r.reason?[r.reason]:[];}}
+  }
   report.index.summary.roads=report.index.features.filter(f=>f.kind==='road'&&f.generated).length;
   report.index.summary.roadNetwork=scene.metadata.roadNetwork;
   report.index.summary.environment=scene.metadata.environmentTypes;

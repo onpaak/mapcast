@@ -14,6 +14,7 @@ import {buildAtlasBay,buildModelledBay,buildCourtyardWalls} from './city/facade-
 import {placeEdgeSigns} from './city/edge-signs.mjs';
 import {placeRoofEquipment} from './city/roof-equipment.mjs';
 import {buildStructure} from './city/structures.mjs';
+import {placeStreetFurniture} from './street-furniture.mjs';
 
 // The concrete-city preset: replaces each OSM building's plain extrusion with a PS2-style
 // facade and adds the neon street layer. Street-facing ground floors are modelled around
@@ -38,6 +39,10 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
   };
   const city={scene,materials,street,state,lite};
   for(const [index,source] of sources.entries())buildBuilding(city,{...planBuilding(source,street.roads),quiet:lowRise[index]});
+  // Mapped street furniture goes in after the buildings, so it yields to their shop props.
+  const furniture=lite?{objects:[],records:[]}:placeStreetFurniture(base.furniture??[],{street,materials:materials.furniture,paths:base.objects.flatMap(o=>o.extras?.path?[o.extras.path]:o.extras?.walkingPath?[o.extras.walkingPath]:[])});
+  scene.objects.push(...furniture.objects);
+  for(const r of furniture.records)if(r.status==='skipped')(scene.metadata.omissions??=[]).push({id:r.sourceId,reason:`Street furniture (${r.kind}) left out: ${r.reason}`});
 
   scene.metadata={...scene.metadata,style:'concrete-city-reference-v1',entranceLayouts:state.layouts,generationPreset:{...scene.metadata.generationPreset,name:'concrete-city-reference-v1'},sceneModules:scene.objects.reduce((a,o)=>(a[o.extras.sceneModule]=(a[o.extras.sceneModule]??0)+1,a),{})};
   compactMaterials(scene);
@@ -45,7 +50,8 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
     style:'ps2-neon-concrete-v14',frontages:state.frontages,entranceAccess:[],shopCanopies:state.canopies,concreteFamilies:state.families,
     entranceAccessSummary:{},entranceAccessEnabled:false,shopSigns:state.shopSigns,shopBlades:state.shopBlades,streetSigns:state.streetSigns,
     rooftopSigns:state.rooftopSigns,billboards:state.billboards,detail:lite?'lite':'full',windowPosters:state.windowPosters,streetProps:state.streetProps,rooftopEquipment:state.rooftopEquipment,
-    groundFloorKit:state.groundFloorKit,groundFloorKitSummary:state.groundFloorKit.reduce((a,k)=>{const key=k.state?`${k.kind}-${k.state}`:k.kind;a[key]=(a[key]??0)+1;return a;},{})
+    groundFloorKit:state.groundFloorKit,groundFloorKitSummary:state.groundFloorKit.reduce((a,k)=>{const key=k.state?`${k.kind}-${k.state}`:k.kind;a[key]=(a[key]??0)+1;return a;},{}),
+    streetFurniture:furniture.records,streetFurnitureSummary:furniture.records.reduce((a,r)=>{a[r.kind]??={generated:0,skipped:0};a[r.kind][r.status]++;return a;},{})
   });
   scene.metadata.generationPreset.name='ps2-neon-concrete-v14';
   const buildingMaterials=new Set(scene.objects.filter(o=>o.name.startsWith('Building_')).map(o=>o.material));

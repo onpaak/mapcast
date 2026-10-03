@@ -6,6 +6,7 @@ import {polygonMesh} from './polygon-mesh.mjs';
 import {roadWidth} from './road-network.mjs';
 import {environmentKind} from './environment.mjs';
 import {associateShopPOIs} from './shop-pois.mjs';
+import {furnitureSources} from './street-furniture.mjs';
 import {walkingWidth} from './walking-surfaces.mjs';
 import {terrainMesh,terrainHeightLocal,prepareGameTerrain} from './terrain.mjs';
 export function generate(data) {
@@ -114,8 +115,10 @@ export function generate(data) {
   }
   const extendedDown=supportRaisedSections(objects);
   const shopPOIs=associateShopPOIs(objects,data.features,origin);
+  // Mapped benches, bins, bicycle racks and railings, placed by the concrete preset.
+  const furniture=furnitureSources(data.features,origin);
   const terrain=gameTerrain?{...gameTerrain,minElevation:Math.min(...gameTerrain.elevations),maxElevation:Math.max(...gameTerrain.elevations),cacheFile:undefined}:undefined;
-  return {objects,materials,metadata:{origin,bounds,...(data.selectionArea?{selectionArea:data.selectionArea}:{}),shopPOIs,buildingParts:{parts:placedParts,replacedOutlines,extendedDown},units:'meters',axes:'Y up; X east; -Z north',source:data.source??'User supplied GeoJSON; verify attribution',terrain,terrainError:data.terrainError,warnings,omissions,limitations:[terrain?'Terrain uses a 90m DEM and does not represent curbs or embankments':'Flat terrain fallback','Complex merges and roundabouts are represented by segment geometry','Flat materials only; PS2 texture and lighting pass pending']}};
+  return {objects,materials,furniture,metadata:{origin,bounds,...(data.selectionArea?{selectionArea:data.selectionArea}:{}),shopPOIs,buildingParts:{parts:placedParts,replacedOutlines,extendedDown},units:'meters',axes:'Y up; X east; -Z north',source:data.source??'User supplied GeoJSON; verify attribution',terrain,terrainError:data.terrainError,warnings,omissions,limitations:[terrain?'Terrain uses a 90m DEM and does not represent curbs or embankments':'Flat terrain fallback','Complex merges and roundabouts are represented by segment geometry','Flat materials only; PS2 texture and lighting pass pending']}};
 }
 
 // Raised sections rest on what is under them. Where the data leaves a gap (a podium mapped a
