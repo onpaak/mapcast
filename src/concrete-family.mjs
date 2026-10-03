@@ -1,6 +1,8 @@
 const active=value=>value&&!['no','vacant'].includes(String(value));
 const homes=new Set(['apartments','residential','house','detached','semidetached_house','terrace','dormitory']);
-const halls=new Set(['civic','public','townhall','community_centre','library','courthouse']);
+// Civic halls, and large venues (theatres, cinemas, museums, sports halls) that would otherwise
+// fall back to a windowless mass.
+const halls=new Set(['civic','public','townhall','community_centre','library','courthouse','theatre','cinema','arts_centre','concert_hall','museum','gallery','exhibition_centre','conference_centre','sports_hall','sports_centre']);
 const industrial=new Set(['industrial','warehouse','garages','garage','shed']);
 const windowBlocks=new Set(['school','college','university','hospital','hotel','motel','hostel','kindergarten']);
 const special=new Set(['church','cathedral','chapel','mosque','synagogue','temple','religious','stadium','tower','water_tower','storage_tank','castle','bunker','hangar','train_station','transportation']);

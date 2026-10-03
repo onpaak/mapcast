@@ -72,7 +72,7 @@ Downloads are cached in `cache/`. Add `--refresh` to download again. See [map da
 | `preview-*.png` | Quick still previews. They are not final renders. |
 | `ATTRIBUTION.txt` | Data sources and required credits. |
 
-A 400 × 450 m block in Berlin (307 buildings) comes out at about 297,000 triangles and 29 MB. A dense Hong Kong block is 51 MB in full detail and 33 MB in lite.
+A 400 × 450 m block in Berlin (307 buildings) comes out at about 337,000 triangles and 33 MB. A dense Hong Kong block is 51 MB in full detail and 33 MB in lite.
 
 Import notes for [Blender and Unreal Engine](docs/blender-unreal.md).
 

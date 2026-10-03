@@ -113,7 +113,7 @@ function buildMass(city,building,out){
     if(building.family==='simple-mass'){box(0,len,hidden,height);continue;}
     if(building.publicHall){
       if(len>=3&&height>=3){
-        const openings=publicHallEdge({length:len,height,front:edge===front,box,panel,recessFits:(l,r)=>balconyFits(ring,holes,a,b,n,l,r)});
+        const openings=publicHallEdge({length:len,height,hidden,front:edge===front,box,panel,reveal:geometry.reveal,recessFits:(l,r)=>balconyFits(ring,holes,a,b,n,l,r)});
         for(const opening of openings){
           state.frontages.push({sourceId:id,edge,...opening});
           if(opening.type==='public-entrance')state.layouts.push({sourceId:id,objectName:source.name,edge,bay:opening.bay,bottom:0,window:false,doorType:'solid-double',bounds:opening.bounds});

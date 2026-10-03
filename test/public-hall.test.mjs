@@ -9,6 +9,10 @@ test('public hall classification is separate from office and does not turn resid
  assert.equal(concreteFamily({building:'apartments',amenity:'library'}),'residential');
  assert.equal(concreteFamily({building:'warehouse',shop:'yes'}),'industrial');
 });
+test('large venues get the public hall facade; special structures stay a plain mass',()=>{
+ for(const tags of [{building:'theatre'},{building:'cinema'},{building:'sports_hall'},{building:'museum'},{building:'yes',amenity:'theatre'},{building:'yes',tourism:'museum'}])assert.equal(concreteFamily(tags),'public-hall',JSON.stringify(tags));
+ for(const tags of [{building:'grandstand'},{building:'church'},{building:'stadium'},{building:'elevator'}])assert.equal(concreteFamily(tags),'simple-mass',JSON.stringify(tags));
+});
 test('public hall exports high windows and an independent solid entrance with reusable textures',()=>{
  const scene=concreteCity(generate({type:'FeatureCollection',features:[{id:'hall',properties:{building:'civic',height:'9'},geometry:{type:'Polygon',coordinates:[[[0,0],[.0003,0],[.0003,.0002],[0,.0002],[0,0]]]}}]}));
  assert.equal(scene.metadata.concreteFamilies[0].family,'public-hall');

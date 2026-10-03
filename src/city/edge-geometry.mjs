@@ -38,14 +38,15 @@ export function edgeGeometry({ring,lengths,edge,a,u,n,emit}){
     const order=facing>0?[0,1,2,0,2,3]:[0,2,1,0,3,2];
     emit({positions:order.flatMap(i=>p[i]),normals:order.flatMap(()=>normal)},bin);
   };
-  const sillFace=(l,r,y,depth,normalY=1)=>{if(r-l>.001)quad([[l,y,0],[r,y,0],[r,y,depth],[l,y,depth]],[0,normalY,0],BIN.wall);};
+  const sillFace=(l,r,y,depth,normalY=1,bin=BIN.wall)=>{if(r-l>.001)quad([[l,y,0],[r,y,0],[r,y,depth],[l,y,depth]],[0,normalY,0],bin);};
   // Walls are flush faces; an opening only needs its four reveal faces back to the glass.
-  const reveal=(l,r,bottom,top,depth,{sill=true}={})=>{
+  // bin colours the sides and head; sillBin the sill.
+  const reveal=(l,r,bottom,top,depth,{sill=true,bin=BIN.wall,sillBin=BIN.wall}={})=>{
     if(r-l<.001||top-bottom<.001)return;
-    quad([[l,bottom,0],[l,bottom,depth],[l,top,depth],[l,top,0]],[u[0],0,u[1]],BIN.wall);
-    quad([[r,bottom,0],[r,bottom,depth],[r,top,depth],[r,top,0]],[-u[0],0,-u[1]],BIN.wall);
-    if(sill)sillFace(l,r,bottom,depth);
-    sillFace(l,r,top,depth,-1);
+    quad([[l,bottom,0],[l,bottom,depth],[l,top,depth],[l,top,0]],[u[0],0,u[1]],bin);
+    quad([[r,bottom,0],[r,bottom,depth],[r,top,depth],[r,top,0]],[-u[0],0,-u[1]],bin);
+    if(sill)sillFace(l,r,bottom,depth,1,sillBin);
+    sillFace(l,r,top,depth,-1,bin);
   };
   return {box,panel,quad,sillFace,reveal};
 }

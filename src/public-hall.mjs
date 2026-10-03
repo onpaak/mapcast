@@ -1,14 +1,19 @@
 // Concrete structural bays stay inside the source footprint. Recess depth is
 // selected by the caller after checking the actual building and courtyard rings.
-export function publicHallEdge({length,height,front,recessFits,box,panel}){
+// Tiers wholly below `hidden` (the height a neighbour covers) are left out.
+export function publicHallEdge({length,height,hidden=0,front,recessFits,box,panel,reveal}){
  const bays=Math.max(1,Math.floor(length/4.2)),width=length/bays,entryBay=Math.floor(bays/2),tiers=Math.max(1,Math.ceil(height/9)),tierHeight=height/tiers,openings=[];
  for(let tier=0;tier<tiers;tier++)for(let bay=0;bay<bays;bay++){
-  const left=bay*width,right=(bay+1)*width,y=tier*tierHeight,top=(tier+1)*tierHeight,entry=front&&tier===0&&bay===entryBay;
+  const left=bay*width,right=(bay+1)*width,y=tier*tierHeight,top=(tier+1)*tierHeight,entry=front&&tier===0&&bay===entryBay&&hidden<.01;
+  if(top<=hidden+.01)continue;
   const pier=Math.min(.55,width*.2),l=left+pier,r=right-pier,upper=top-Math.min(1,tierHeight*.2),bottom=entry?0:front?y+.45:Math.max(y+.45,upper-1.5),depth=front&&recessFits(l,r)?-.85:-.18;
-  box(left,l,y,top);box(r,right,y,top);box(l,r,y,bottom);box(l,r,upper,top);
-  // Deep reveals enclose the opening rather than leaving holes beside the glass.
-  box(l,l+.10,bottom,upper,0,depth-.08,1);box(r-.10,r,bottom,upper,0,depth-.08,1);
-  box(l,r,upper-.08,upper,0,depth-.08,1);if(!entry)box(l,r,bottom,bottom+.10,0,depth-.08);
+  // Piers and wall infill are flat faces, like the other facades.
+  panel(left,l,y,top,0,0);panel(r,right,y,top,0,0);panel(l,r,y,bottom,0,0);panel(l,r,upper,top,0,0);
+  // The dark frame shows only its front band and the deep reveal faces into the opening,
+  // which enclose it rather than leaving holes beside the glass.
+  panel(l,l+.10,bottom,upper,0,1);panel(r-.10,r,bottom,upper,0,1);panel(l+.10,r-.10,upper-.08,upper,0,1);
+  if(!entry)panel(l+.10,r-.10,bottom,bottom+.10,0,0);
+  reveal(l+.10,r-.10,entry?bottom:bottom+.10,upper-.08,depth-.08,{sill:!entry,bin:1,sillBin:0});
   if(entry){
    const doorWidth=Math.min(1.8,r-l-.22),dl=(l+r-doorWidth)/2,dr=dl+doorWidth,doorTop=Math.min(2.4,upper-.25);
    box(l,dl,0,upper,depth,depth-.16);box(dr,r,0,upper,depth,depth-.16);

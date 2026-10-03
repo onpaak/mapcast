@@ -72,7 +72,7 @@ node src/cli.mjs --input examples/block.json --out output/demo
 | `preview-*.png` | 快速静态预览，不是最终渲染。 |
 | `ATTRIBUTION.txt` | 数据来源与署名要求。 |
 
-柏林一块 400 × 450 米的街区（307 栋建筑）约 29.7 万个三角面，文件约 29 MB。香港的一块密集街区完整模式为 51 MB，精简模式为 33 MB。
+柏林一块 400 × 450 米的街区（307 栋建筑）约 33.7 万个三角面，文件约 33 MB。香港的一块密集街区完整模式为 51 MB，精简模式为 33 MB。
 
 导入说明见 [Blender 与 Unreal Engine](docs/blender-unreal.md)。
 
