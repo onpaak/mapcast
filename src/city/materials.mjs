@@ -19,7 +19,7 @@ export function createCityMaterials(scene,{billboardSlots}={}){
   const pushTexture=t=>{scene.textures.push(t);return scene.textures.length-1;};
 
   const start=scene.materials.length;
-  for(const [name,color] of [['Panel concrete',[.72,.71,.67,1]],['Recess shadow',[.16,.18,.18,1]],['Window glass',[.20,.25,.27,1]],['Window frame',[.49,.50,.48,1]],['Panel joint',[.48,.48,.45,1]]])
+  for(const [name,color] of [['Panel concrete',[.72,.71,.67,1]],['Recess shadow',[.16,.18,.18,1]],['Window glass',[.20,.25,.27,1]],['Window frame',[.49,.50,.48,1]],['Panel joint',[.19,.19,.18,1]]])
     pushMaterial({name,pbrMetallicRoughness:{baseColorFactor:color,metallicFactor:0,roughnessFactor:.85}});
   const tiles={};
   for(const kind of ['concrete','plaster','brick','metal','glass','roof'])tiles[kind]=pushTexture(surfaceTile(kind));

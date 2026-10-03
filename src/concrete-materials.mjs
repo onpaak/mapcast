@@ -1,16 +1,19 @@
 import {png} from './png.mjs';
 
-// Shared, door-free surface tiles. Geometry alone owns openings.
+// Shared, door-free surface tiles. Geometry alone owns openings. Every tile repeats without a
+// seam: streaks and stains use whole periods of the tile, so walls show no line every 3 m.
 export function surfaceTile(kind){
-  const width=64,height=64,rgba=new Uint8Array(width*height*4);
+  const width=64,height=64,rgba=new Uint8Array(width*height*4),TAU=2*Math.PI;
   for(let y=0;y<height;y++)for(let x=0;x<width;x++){
     const noise=((Math.imul(x+7,73856093)^Math.imul(y+19,19349663))>>>0)%11-5;
-    const drip=Math.max(0,Math.sin(x*.71)+Math.sin(x*.23)-.8)*(y/64)*19;
-    const foot=Math.pow(y/63,5)*20;
+    // Rain streaks, strongest mid-tile and fading out at both ends.
+    const drip=Math.max(0,Math.sin(x*TAU*7/width)+Math.sin(x*TAU*2/width)-.8)*Math.sin(Math.PI*y/height)**.8*14;
+    // A soft grime band low in the tile, measured round the wrap so it joins the next tile.
+    const d=Math.min(Math.abs(y-56),height-Math.abs(y-56)),foot=14*Math.exp(-d*d/50);
     let c;
     if(kind==='concrete')c=[145,145,141].map(v=>v+noise-drip-foot);
     if(kind==='plaster')c=[166,161,151].map(v=>v+noise*.65-drip-foot*.6);
-    if(kind==='brick'){const seam=y%10<1||(x+(Math.floor(y/10)%2)*12)%24<1;c=seam?[95,88,76]:[133+noise,99+noise,78+noise];}
+    if(kind==='brick'){const seam=y%8<1||(x+(Math.floor(y/8)%2)*8)%16<1;c=seam?[95,88,76]:[133+noise,99+noise,78+noise];}
     if(kind==='metal'){const scratch=(x*13+y*7)%113===0?17:0;c=[86,92,89].map(v=>v+noise+scratch-foot*.5);}
     if(kind==='glass'){const reflection=4*Math.sin(x*Math.PI/32)+3*Math.cos(y*Math.PI/32);c=[35,53,60].map(v=>v+reflection+noise*.15);}
     if(kind==='roof')c=[73,77,73].map(v=>v+noise-(x%32===0||y%32===0?12:0));
