@@ -145,6 +145,8 @@ All prop placement is inferred. It is recorded in `metadata.json` → `streetPro
 
 Street lamps are cool-white curved-arm lamps, roughly every 32 m along roads, standing on the pavement. They are one shared mesh, instanced by position and rotation.
 
+Traffic signal poles stand where OpenStreetMap maps `highway=traffic_signals` on a road, and nowhere else. Each road leaving the signal gets one 3.5 m steel pole on its pavement, just outside the junction, with its head facing back across the junction: it is the far-side signal for the traffic coming from the opposite road, on that traffic's kerb side (the left kerb where traffic keeps left, as in Hong Kong, Japan or the UK). One road axis shows a lit red lens and the crossing axis a lit green one; the lenses glow at night. Street lamps keep 3 m clear of the poles. `metadata.json` → `trafficSignals` records each signal and how many poles it got.
+
 Props stand either fully on the pavement or fully on the ground, never across the kerb. Overhead wires are not generated: without poles and wall brackets they would appear out of nowhere, and OSM rarely maps them.
 
 ### Mapped street furniture
@@ -177,6 +179,7 @@ Where buildings within 80 m average fewer than 3 storeys, as in villages and sub
 
 - Road width comes from `width`, lane count or road class. The generator builds flat road surfaces with clean junction patches.
 - Every road has a plain 2 m pavement on both sides, starting right at the carriageway edge and trimmed around buildings and junctions. Nothing else is paved: mapped footways, paths, cycleways, pedestrian streets and squares are not drawn, so the ground beyond the pavements stays one even surface. They are listed as omissions in `source-index.json`.
+- Zebra crossings are painted where OpenStreetMap maps a crossing on a road with markings: `crossing=zebra`, `marked`, `uncontrolled` or `traffic_signals`, or any `crossing:markings` other than `no`. Crossings without that information are not guessed. White bars 0.5 m wide every 1 m run with the traffic across the whole carriageway, 3 m deep. A crossing that would reach into a junction slides up to 3 m along its road, or is left out. Lane dashes keep clear of crossings. `metadata.json` → `zebraCrossings` records each crossing and why any was left out.
 - The ground uses four finishes, plus water: **road** (every carriageway and junction is asphalt, whatever its mapped `surface`; the tag is still recorded as `surfaceKind`), the plain **pavement**, the **base ground**, and **green areas** (grass, parks, gardens and woodland).
 - Water, grass, parks and woodland become flat areas. Trees are not generated.
 - The ground is flat. An older elevation experiment remains behind `--terrain`, which downloads elevation data. It is not part of the main style.

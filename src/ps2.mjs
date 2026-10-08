@@ -9,6 +9,8 @@ import {streetCamera} from './street-camera.mjs';
 import {buildingProfile,architectureTexture,architectureTextureKey,facadeUV} from './architecture.mjs';
 import {junctionPatches,roadSurface} from './road-network.mjs';
 import {terrainHeightLocal,roadbedHeightLocal} from './terrain.mjs';
+import {zebraCrossings} from './crossings.mjs';
+import {placeSignals,signalMeshes} from './traffic-signals.mjs';
 function texture(name,kind){
   const width=128,height=128,rgba=new Uint8Array(width*height*4);
   for(let y=0;y<height;y++)for(let x=0;x<width;x++){
@@ -71,9 +73,12 @@ export function stylePS2(scene,{buildingDetails:details=true}={}){
   materials[0].pbrMetallicRoughness.baseColorFactor=[1,1,1,1];materials[0].pbrMetallicRoughness.baseColorTexture={index:7};
   for(const [m,t] of [[4,4],[5,5],[6,6]]){materials[m].pbrMetallicRoughness.baseColorFactor=[1,1,1,1];materials[m].pbrMetallicRoughness.baseColorTexture={index:t};}
   const add=(name,color,emissiveFactor)=>{materials.push({name,pbrMetallicRoughness:{baseColorFactor:[...color,1],metallicFactor:0,roughnessFactor:1},...(emissiveFactor?{emissiveFactor}:{})});return materials.length-1;};
-  const roof=add('Roof',[.22,.24,.26]),paint=add('Worn lane paint',[.65,.59,.39]),metal=add('Lamp metal',[.42,.43,.42]),glow=add('Lamp glow',[.9,.92,.95],[.85,.92,1]);
+  const roof=add('Roof',[.22,.24,.26]),paint=add('Worn lane paint',[.65,.59,.39]),crossingPaint=add('Crossing paint',[.74,.74,.70]),metal=add('Lamp metal',[.42,.43,.42]),glow=add('Lamp glow',[.9,.92,.95],[.85,.92,1]);
   // Cool white lamps read as light sources at night; strength above 1 lets engines bloom them.
   materials[glow].extensions={KHR_materials_emissive_strength:{emissiveStrength:3}};
+  // Traffic signals: dark steel, unlit lenses, and lit red and green that bloom at night.
+  const signalSteel=add('Signal steel',[.11,.12,.12]),lensOff=add('Signal lens',[.07,.07,.07]),lensRed=add('Signal red',[.9,.12,.08],[1,.1,.06]),lensGreen=add('Signal green',[.1,.85,.5],[.1,1,.55]);
+  for(const m of [lensRed,lensGreen])materials[m].extensions={KHR_materials_emissive_strength:{emissiveStrength:3}};
   const pavement=add('Concrete sidewalk',[.40,.39,.36]),trim=add('Roof coping',[.36,.34,.32]),equipment=add('Roof equipment',[.28,.32,.34]);
   const entranceMaterials={door:add('Entrance door',[.23,.16,.11]),glass:add('Entrance glass',[.10,.16,.19]),frame:add('Entrance frame',[.13,.14,.14]),handle:add('Door handle brass',[.67,.53,.25])};
   const shop=add('Storefront',[1,1,1]);materials[shop].pbrMetallicRoughness.baseColorTexture={index:3};
@@ -118,18 +123,28 @@ export function stylePS2(scene,{buildingDetails:details=true}={}){
   const walks=sidewalks(segments,footprints,pavement,roadFaceRings(resolvedRoads));objects.push(...walks.objects);
   if(details)objects.push(...buildingDetails(buildings,segments,{shop,trim,roofEquipment:equipment,buildingMaterials,entranceMaterials}));
   function distance(p,a,b){const dx=b[0]-a[0],dz=b[1]-a[1],q=dx*dx+dz*dz;if(q===0)return Math.hypot(p[0]-a[0],p[1]-a[1]);const t=Math.max(0,Math.min(1,((p[0]-a[0])*dx+(p[1]-a[1])*dz)/q));return Math.hypot(p[0]-a[0]-dx*t,p[1]-a[1]-dz*t);}
+  // Zebra crossings where the map marks them; lane dashes keep clear of them.
+  const crossings=zebraCrossings(scene.crossings??[],segments,crossingPaint);objects.push(...crossings.objects);
+  const painted=crossings.records.filter(r=>r.status==='generated'),onCrossing=p=>painted.some(c=>Math.hypot(p[0]-c.center[0],p[1]-c.center[1])<c.radius+1);
+  // Signal poles where the map has traffic signals, on the pavement beside each approach.
+  const signals=placeSignals(scene.signals??[],segments,{onPavement:p=>walks.pads.some(r=>insidePolygon(p,r)),inBuilding:p=>blocked(p,footprints,.3),origin:scene.metadata.origin}),signalMesh=signalMeshes();
+  signals.poles.forEach(({position,yaw,red},i)=>{
+    const origin=[position[0],PAVEMENT_TOP,position[1]];
+    for(const [part,material,key] of [['body',signalSteel,'signal-pole'],['red',red?lensRed:lensOff,red?'signal-red-lit':'signal-red'],['amber',lensOff,'signal-amber'],['green',red?lensOff:lensGreen,red?'signal-green':'signal-green-lit']])
+      objects.push({name:`TrafficSignal_${i}_${part}`,...placeLamp(signalMesh[part],origin,yaw),material,extras:{assetKey:key,instanceOrigin:origin,instanceYaw:yaw,sceneModule:'StreetProps'}});
+  });
   let count=0;const lights=[],lamp=streetLampMeshes();
   for(const s of segments){
     const dx=s.b[0]-s.a[0],dz=s.b[1]-s.a[1],len=Math.hypot(dx,dz);if(len<1)continue;
     const ux=dx/len,uz=dz/len;
     const nearOther=p=>segments.some(t=>t.road!==s.road&&distance(p,t.a,t.b)<t.width/2+4);
-    for(let d=4;d+3<len;d+=9){const p=[s.a[0]+ux*d,s.a[1]+uz*d];if(nearOther(p)||nearOther([p[0]+ux*3,p[1]+uz*3]))continue;
+    for(let d=4;d+3<len;d+=9){const p=[s.a[0]+ux*d,s.a[1]+uz*d];if(nearOther(p)||nearOther([p[0]+ux*3,p[1]+uz*3])||onCrossing(p)||onCrossing([p[0]+ux*3,p[1]+uz*3])||onCrossing([p[0]+ux*1.5,p[1]+uz*1.5]))continue;
       const mesh=roadSegments([p,[p[0]+ux*3,p[1]+uz*3]],.13);for(let i=1;i<mesh.positions.length;i+=3)mesh.positions[i]=.04;
       objects.push({name:`LaneMark_${count++}`,...mesh,material:paint});
     }
     for(let d=12;d<len-8;d+=32){
       const p=[s.a[0]+ux*d-uz*(s.width/2+1),s.a[1]+uz*d+ux*(s.width/2+1)];if(nearOther(p)||blocked(p,footprints,.65)||!walks.pads.some(r=>insidePolygon(p,r)))continue;
-      if(lights.some(l=>Math.hypot(l.position[0]-p[0],l.position[2]-p[1])<8))continue;
+      if(lights.some(l=>Math.hypot(l.position[0]-p[0],l.position[2]-p[1])<8)||signals.poles.some(q=>Math.hypot(q.position[0]-p[0],q.position[1]-p[1])<3))continue;
       // Pole on the pavement, arm reaching back over the carriageway.
       const origin=[p[0],PAVEMENT_TOP,p[1]],yaw=lampYaw([uz,-ux]);
       objects.push({name:`LampPost_${count}`,...placeLamp(lamp.body,origin,yaw),material:metal,extras:{assetKey:'lamp-post-v2',instanceOrigin:origin,instanceYaw:yaw}});
@@ -142,14 +157,14 @@ export function stylePS2(scene,{buildingDetails:details=true}={}){
   const architectureTypes=appearances.reduce((a,p)=>(a[p.type]=(a[p.type]??0)+1,a),{}),textureReuse={buildingInstances:appearances.length,sharedBuildingTextures:textureCache.size,sharedBuildingMaterials:materialCache.size};
   const widthSources=roads.reduce((counts,road)=>(counts[road.extras.widthSource]=(counts[road.extras.widthSource]??0)+1,counts),{});
   const surfaceTypes=roads.reduce((counts,road)=>{const kind=roadSurface(road.extras).kind;counts[kind]=(counts[kind]??0)+1;return counts;},{});
-  const roadNetwork={roadFeatures:roads.length,segments:segments.length,junctionPatches:junctions.length,inferredCrosswalks:0,sidewalkCornerObjects:0,widthSources,surfaceTypes};
+  const roadNetwork={roadFeatures:roads.length,segments:segments.length,junctionPatches:junctions.length,zebraCrossings:{generated:painted.length,skipped:crossings.records.length-painted.length},trafficSignals:{poles:signals.poles.length,signals:signals.records.length},inferredCrosswalks:0,sidewalkCornerObjects:0,widthSources,surfaceTypes};
   const environmentTypes=objects.reduce((counts,o)=>{const kind=o.extras?.environment;if(kind&&!o.name.endsWith('_Crown'))counts[kind]=(counts[kind]??0)+1;return counts;},{});
   let finalObjects=objects,finalCamera=previewCamera,finalLights=lights;
   if(scene.metadata.terrain){
     const height=(x,z)=>terrainHeightLocal(scene.metadata.terrain,scene.metadata.origin,x,z),roadHeight=(x,z)=>roadbedHeightLocal(scene.metadata.terrain,scene.metadata.origin,x,z,segments),buildingOffsets=new Map(buildings.map(building=>[building.name,building.extras.gameBaseElevation??height(...building.extras.footprint[0])])),names=[...buildingOffsets.keys()].sort((a,b)=>b.length-a.length);
     finalObjects=objects.map(object=>{
       if(object.extras?.terrainGround||object.extras?.terrainAbsolute)return object;
-      const buildingName=names.find(name=>object.name===name||object.name.startsWith(name+'_')),waterLevel=object.extras?.environment==='water'?object.extras.waterLevel:undefined,roadAttached=/^(Road_|Roadbed_|Junction_|LaneMark_|Crosswalk_|Sidewalk|Lamp)/.test(object.name),assetOrigin=object.extras?.instanceOrigin,assetElevation=assetOrigin?(roadAttached?roadHeight(assetOrigin[0],assetOrigin[2]):height(assetOrigin[0],assetOrigin[2])):undefined,rigid=buildingName?buildingOffsets.get(buildingName):waterLevel??assetElevation,positions=[...object.positions];
+      const buildingName=names.find(name=>object.name===name||object.name.startsWith(name+'_')),waterLevel=object.extras?.environment==='water'?object.extras.waterLevel:undefined,roadAttached=/^(Road_|Roadbed_|Junction_|LaneMark_|Crosswalk_|ZebraCrossings|Sidewalk|Lamp|TrafficSignal_)/.test(object.name),assetOrigin=object.extras?.instanceOrigin,assetElevation=assetOrigin?(roadAttached?roadHeight(assetOrigin[0],assetOrigin[2]):height(assetOrigin[0],assetOrigin[2])):undefined,rigid=buildingName?buildingOffsets.get(buildingName):waterLevel??assetElevation,positions=[...object.positions];
       for(let i=0;i<positions.length;i+=3)positions[i+1]+=rigid??(roadAttached?roadHeight(positions[i],positions[i+2]):height(positions[i],positions[i+2]));
       return {...object,positions,extras:{...object.extras,...(buildingName?{terrainOffset:rigid}:{}),...(assetOrigin?{instanceOrigin:[assetOrigin[0],assetOrigin[1]+assetElevation,assetOrigin[2]]}:{})}};
     });
@@ -160,5 +175,5 @@ export function stylePS2(scene,{buildingDetails:details=true}={}){
   const sceneModules=finalObjects.reduce((counts,object)=>(counts[object.extras.sceneModule]=(counts[object.extras.sceneModule]??0)+1,counts),{});
   const assetInstances=finalObjects.reduce((counts,object)=>{const key=object.extras.assetKey;if(key)counts[key]=(counts[key]??0)+1;return counts;},{});
   const generationPreset={name:'ps2-flat-city-v2',focus:'buildings-and-streetscape',trees:false,terrainMode:scene.metadata.terrain?'optional-smoothed-compressed':'flat',terrainStrength:scene.metadata.terrain?.terrainPreset?.strength??0,maxTerrainRelief:scene.metadata.terrain?.terrainPreset?.maxRelief??0,roadTopology:'joined-ribbons',junctionMode:'incident-road-hull',automaticCrosswalks:false,roadbeds:false,waterMode:scene.metadata.terrain?'level':'flat',buildingBaseMode:scene.metadata.terrain?'highest-footprint-sample':'flat',deterministicBySourceId:true};
-  return {...scene,objects:finalObjects,materials,textures,metadata:{...scene.metadata,previewCamera:finalCamera,style:'ps2-dusk-flat-city-v9',generationPreset,buildingAppearances:appearances,architectureTypes,roadNetwork:{...roadNetwork,roadbedObjects:0},environmentTypes,sceneModules,assetInstances,textureReuse,textureLicense:'Original procedural textures generated by Mapcast; CC0-1.0',lights:finalLights,limitations:scene.metadata.limitations.filter(x=>!x.startsWith('Flat materials')).concat(['Road ways use joined ribbons and shared-endpoint junction hulls; complex merges and roundabouts are not polygon-unioned','Automatic crosswalks and loose sidewalk corner pads are disabled until they can be derived without overlap','Optional terrain remains experimental and is only enabled with the CLI --terrain flag','Individual trees are intentionally omitted from the building-and-streetscape preset','Sidewalks clip building footprints and actual road surfaces; complete intersection corners and curb ramps remain pending','Facade appearance is inferred from tags and stable IDs, not a real facade reconstruction','Most roofs retain flat geometry; religious spires are inferred markers, pitched roofs not implemented','Street furniture and entrances are inferred, not real OSM objects','Blender/Unreal runtime verification pending'])}};
+  return {...scene,objects:finalObjects,materials,textures,metadata:{...scene.metadata,trafficSignals:signals.records,zebraCrossings:crossings.records.map(({center,radius,...r})=>r),previewCamera:finalCamera,style:'ps2-dusk-flat-city-v9',generationPreset,buildingAppearances:appearances,architectureTypes,roadNetwork:{...roadNetwork,roadbedObjects:0},environmentTypes,sceneModules,assetInstances,textureReuse,textureLicense:'Original procedural textures generated by Mapcast; CC0-1.0',lights:finalLights,limitations:scene.metadata.limitations.filter(x=>!x.startsWith('Flat materials')).concat(['Road ways use joined ribbons and shared-endpoint junction hulls; complex merges and roundabouts are not polygon-unioned','Automatic crosswalks and loose sidewalk corner pads are disabled until they can be derived without overlap','Optional terrain remains experimental and is only enabled with the CLI --terrain flag','Individual trees are intentionally omitted from the building-and-streetscape preset','Sidewalks clip building footprints and actual road surfaces; complete intersection corners and curb ramps remain pending','Facade appearance is inferred from tags and stable IDs, not a real facade reconstruction','Most roofs retain flat geometry; religious spires are inferred markers, pitched roofs not implemented','Street furniture and entrances are inferred, not real OSM objects','Blender/Unreal runtime verification pending'])}};
 }

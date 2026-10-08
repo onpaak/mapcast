@@ -8,6 +8,7 @@ import {environmentKind} from './environment.mjs';
 import {associateShopPOIs} from './shop-pois.mjs';
 import {furnitureSources} from './street-furniture.mjs';
 import {terrainMesh,terrainHeightLocal,prepareGameTerrain} from './terrain.mjs';
+import {isCrossingNode} from './crossings.mjs';
 export function generate(data) {
   if(data.type!=='FeatureCollection'||!Array.isArray(data.features)) throw new Error('Expected WGS84 GeoJSON FeatureCollection');
   const pairs=[];
@@ -22,6 +23,7 @@ export function generate(data) {
   const colors=[[0.19,0.20,0.17,1],[0.085,0.09,0.11,1],[0.43,0.39,0.36,1],[0.32,0.36,0.40,1],[.22,.31,.20,1],[.16,.29,.35,1],[.15,.24,.16,1]];
   const materials=colors.map((c,i)=>({name:['Ground','Asphalt','Warm facade','Cool facade','Green area','Water','Woodland'][i],pbrMetallicRoughness:{baseColorFactor:c,metallicFactor:0,roughnessFactor:1}}));
   const gameTerrain=data.terrain?prepareGameTerrain(data.terrain):undefined;
+  const crossings=[],signals=[];
   const objects=[gameTerrain?{name:'Terrain_Surface',...terrainMesh(gameTerrain,origin),material:0,extras:{terrainGround:true,sceneModule:'Terrain_Base'}}:{name:'Terrain_Surface',...extrude(data.selectionArea?offsetConvex(data.selectionArea.slice(0,-1).map(c=>project(...c.slice(0,2),origin)),25):[[lo[0]-25,hi[1]-25],[hi[0]+25,hi[1]-25],[hi[0]+25,lo[1]+25],[lo[0]-25,lo[1]+25]],0),material:0,extras:{terrainGround:true,sceneModule:'Terrain_Base'}}];
   const warnings=[...(data.warnings??[])],omissions=[],replacedOutlines=[];let placedParts=0;
   const projectPolygons=g=>(g.type==='Polygon'?[g.coordinates]:g.coordinates).map(polygon=>polygon.map(r=>r.map(c=>project(...c.slice(0,2),origin))));
@@ -89,6 +91,11 @@ export function generate(data) {
           continue;
         }
         addBuilding({id,p,polygons,index,height,heightSource:source});
+      } else if(g?.type==='Point'&&(isCrossingNode(p)||p.highway==='traffic_signals')) {
+        if(gameTerrain){omissions.push({id,reason:'Crossings and signals currently require flat mode'});continue;}
+        const point=project(...g.coordinates.slice(0,2),origin);
+        if(isCrossingNode(p))crossings.push({id,point,tags:p});
+        if(p.highway==='traffic_signals')signals.push({id,point,tags:p});
       } else if(p.highway) {
         if(g?.type!=='LineString')throw new Error('Road must be LineString');
         if(p.highway==='steps'||p.area==='yes'){
@@ -114,7 +121,7 @@ export function generate(data) {
   // Mapped bins, bicycle racks and railings, placed by the concrete preset.
   const furniture=furnitureSources(data.features,origin);
   const terrain=gameTerrain?{...gameTerrain,minElevation:Math.min(...gameTerrain.elevations),maxElevation:Math.max(...gameTerrain.elevations),cacheFile:undefined}:undefined;
-  return {objects,materials,furniture,metadata:{origin,bounds,...(data.selectionArea?{selectionArea:data.selectionArea}:{}),shopPOIs,buildingParts:{parts:placedParts,replacedOutlines,extendedDown},units:'meters',axes:'Y up; X east; -Z north',source:data.source??'User supplied GeoJSON; verify attribution',terrain,terrainError:data.terrainError,warnings,omissions,limitations:[terrain?'Terrain uses a 90m DEM and does not represent curbs or embankments':'Flat terrain fallback','Complex merges and roundabouts are represented by segment geometry','Flat materials only; PS2 texture and lighting pass pending']}};
+  return {objects,materials,furniture,crossings,signals,metadata:{origin,bounds,...(data.selectionArea?{selectionArea:data.selectionArea}:{}),shopPOIs,buildingParts:{parts:placedParts,replacedOutlines,extendedDown},units:'meters',axes:'Y up; X east; -Z north',source:data.source??'User supplied GeoJSON; verify attribution',terrain,terrainError:data.terrainError,warnings,omissions,limitations:[terrain?'Terrain uses a 90m DEM and does not represent curbs or embankments':'Flat terrain fallback','Complex merges and roundabouts are represented by segment geometry','Flat materials only; PS2 texture and lighting pass pending']}};
 }
 
 // Raised sections rest on what is under them. Where the data leaves a gap (a podium mapped a
