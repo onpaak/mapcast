@@ -17,7 +17,7 @@ export function createStreetContext(base,scene,sources){
   const groundObstacles=()=>canopyObstacles([...footprints,...roadRings,...roadFaces]);
 
   // Pavement top faces as plan triangles, to stand props on the slab.
-  const pavement=scene.objects.filter(o=>/^(Sidewalk|Walkway)/.test(o.name)).flatMap(o=>{
+  const pavement=scene.objects.filter(o=>o.name.startsWith('Sidewalk')).flatMap(o=>{
     const triangles=[],p=o.positions;
     for(let i=0;i<p.length;i+=9)if(o.normals[i+1]>.9&&p[i+1]>PAVEMENT_TOP-.01)triangles.push([[p[i],p[i+2]],[p[i+3],p[i+5]],[p[i+6],p[i+8]]]);
     return triangles;

@@ -175,8 +175,9 @@ Where buildings within 80 m average fewer than 3 storeys, as in villages and sub
 
 ## Roads and ground
 
-- Road width comes from `width`, lane count or road class. The generator builds flat road surfaces with clean junction patches. Pavements avoid buildings and roads.
-- Footways, pedestrian streets and cycleways become shared paving, trimmed around buildings, water and roads.
+- Road width comes from `width`, lane count or road class. The generator builds flat road surfaces with clean junction patches.
+- Every road has a plain 2 m pavement on both sides, starting right at the carriageway edge and trimmed around buildings and junctions. Nothing else is paved: mapped footways, paths, cycleways, pedestrian streets and squares are not drawn, so the ground beyond the pavements stays one even surface. They are listed as omissions in `source-index.json`.
+- The ground uses four finishes, plus water: **road** (every carriageway and junction is asphalt, whatever its mapped `surface`; the tag is still recorded as `surfaceKind`), the plain **pavement**, the **base ground**, and **green areas** (grass, parks, gardens and woodland).
 - Water, grass, parks and woodland become flat areas. Trees are not generated.
 - The ground is flat. An older elevation experiment remains behind `--terrain`, which downloads elevation data. It is not part of the main style.
 

@@ -22,8 +22,8 @@ src/
   osm.mjs, map-api.mjs,        download, cache and parse OSM data
   area.mjs                     four-corner selection areas: checks and clipping
   relations.mjs, shop-pois.mjs
-  scene.mjs                    base scene: buildings, roads, paving, water, green
-  road-*.mjs, walking-surfaces.mjs, pavement-clip.mjs, environment.mjs, streetscape.mjs
+  scene.mjs                    base scene: buildings, roads, water, green
+  road-*.mjs, pavement-clip.mjs, environment.mjs, streetscape.mjs
   ps2.mjs                      shared PS2 look: materials, ground, street lamps
   concrete-city.mjs            the concrete preset, one building at a time
   city/                        its parts:

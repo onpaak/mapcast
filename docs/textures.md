@@ -63,7 +63,7 @@ If the two pictures are given in the wrong order, it tells day from night by bri
 | `Facade_atlas_512.png` / `_emissive_` | 8 × 8 cells of 64 px. Rows 0–6 are facade profiles; columns 0–3 are upper floors, 4–7 ground floors. Row 7 holds loggias (0–3), plain wall (4), the loggia recess (5), and dark and lit curtain wall glass (6, 7). |
 | `Neon_signs_512x….png` / `_emissive_` | Generated from the sign catalog; its layout changes whenever the catalog does. |
 | `Shared_*_64.png` | Tiling materials on modelled parts: concrete, plaster, brick, glass, metal, roof |
-| `Asphalt128.png`, `Concreteroad128.png`, `Stoneroad128.png`, `Ground128.png`, `Grass128.png` | Ground and road surfaces |
+| `Asphalt128.png`, `Ground128.png`, `Grass128.png` | Road, base ground and green areas |
 | `Street_props_128x64.png` | Small street props such as air-conditioning units |
 | `Shared_window_posters_128x192.png` | Window posters |
 

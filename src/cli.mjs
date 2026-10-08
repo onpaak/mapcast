@@ -52,11 +52,6 @@ try {
   const texturesDir=resolve(options.textures??'overrides/textures'),billboardSlots=await readFile(resolve(texturesDir,`${BILLBOARD_LAYOUT.name}.json`),'utf8').then(t=>JSON.parse(t).unique,()=>undefined);
   const baseScene=generate(data),scene=concreteCity(baseScene,{billboardSlots,detail:options.detail}),report=sourceReport(data,baseScene),out=resolve(options.out);
   report.index.summary.architectureTypes=scene.metadata.architectureTypes;
-  if(scene.metadata.walkingSurfaces){
-    const records=scene.metadata.walkingSurfaces;
-    report.index.summary.walkingSurfaces={mapped:records.length,generated:records.filter(r=>r.status==='generated').length,coveredOrBlocked:records.filter(r=>r.status!=='generated').length};
-    for(const r of records){const entry=report.index.features.find(f=>f.featureId===String(r.sourceId));if(entry){entry.walkingSurface=r;entry.generated=r.status==='generated';if(!entry.generated){entry.objectNames=[];entry.skipReasons=['Mapped route covered by existing paving or blocked by buildings, roads or water'];}}}
-  }
   // Street furniture is placed by the concrete preset, after the base scene the report reads.
   if(scene.metadata.streetFurniture){
     report.index.summary.streetFurniture=scene.metadata.streetFurnitureSummary;

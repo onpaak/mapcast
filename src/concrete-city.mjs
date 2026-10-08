@@ -40,7 +40,7 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
   const city={scene,materials,street,state,lite};
   for(const [index,source] of sources.entries())buildBuilding(city,{...planBuilding(source,street.roads),quiet:lowRise[index]});
   // Mapped street furniture goes in after the buildings, so it yields to their shop props.
-  const furniture=lite?{objects:[],records:[]}:placeStreetFurniture(base.furniture??[],{street,materials:materials.furniture,paths:base.objects.flatMap(o=>o.extras?.path?[o.extras.path]:o.extras?.walkingPath?[o.extras.walkingPath]:[])});
+  const furniture=lite?{objects:[],records:[]}:placeStreetFurniture(base.furniture??[],{street,materials:materials.furniture,paths:base.objects.flatMap(o=>o.extras?.path?[o.extras.path]:[])});
   scene.objects.push(...furniture.objects);
   for(const r of furniture.records)if(r.status==='skipped')(scene.metadata.omissions??=[]).push({id:r.sourceId,reason:`Street furniture (${r.kind}) left out: ${r.reason}`});
 

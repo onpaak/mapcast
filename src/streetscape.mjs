@@ -10,7 +10,9 @@ function pyramid(center,base,y,height){
 }
 export function sidewalks(segments,footprints,material,roadFaces=[]){
   const objects=[],pads=[];
-  const roads=segments.map(s=>strip(s.a,s.b,s.width+.3));
+  // Pavement starts right at the carriageway edge: road strips and the resolved road surfaces
+  // (junctions, bends) clip it exactly, so no strip of bare ground shows along the kerb.
+  const roads=segments.map(s=>strip(s.a,s.b,s.width));
   const obstacles=[...polygonObstacles(footprints),...roads.filter(Boolean).map(r=>obstacle(r)),...roadFaces.map(r=>obstacle(r))];
   const occupied=[];
   for(const [index,s] of segments.entries()){
@@ -19,7 +21,7 @@ export function sidewalks(segments,footprints,material,roadFaces=[]){
     for(const side of [-1,1]){
       // Clip the whole straight run, avoiding artificial two-metre slab seams.
       {
-        const d=0,end=len,offset=side*(s.width/2+1.15);
+        const d=0,end=len,offset=side*(s.width/2+1);
         const a=[s.a[0]+ux*d-uz*offset,s.a[1]+uz*d+ux*offset],b=[s.a[0]+ux*end-uz*offset,s.a[1]+uz*end+ux*offset];
         const ring=strip(a,b,2);
         const pieces=clipPavement(ring,[...obstacles,...occupied]);
@@ -45,14 +47,14 @@ export function sidewalks(segments,footprints,material,roadFaces=[]){
       // Restrict this to straight, modest width changes; no guessed intersection pads.
       if(dot>-.9999||Math.abs(arms[0].width-arms[1].width)>4)continue;
       const index=arms[0].width<arms[1].width?0:1,d=dirs[index],length=Math.min(2,d.length),end=d.u.map((v,i)=>center[i]+v*length);
-      const ring=strip(center,end,Math.max(...arms.map(a=>a.width))+4.3),meshes=[];
+      const ring=strip(center,end,Math.max(...arms.map(a=>a.width))+4),meshes=[];
       for(const piece of clipPavement(ring,[...obstacles,...occupied])){meshes.push(extrude(piece,.15,.025));pads.push(piece);occupied.push(obstacle(piece,0));}
       if(meshes.length)objects.push({name:`Sidewalk_Transition_${objects.length}`,...merge(meshes),material,extras:{kind:'sidewalk-width-transition',height:.15}});
       continue;
     }
     if(dot<-.9999||dot>.5)continue;
     const ends=dirs.map(d=>d.u.map((v,i)=>center[i]+v*Math.min(4,d.length)));
-    const candidates=roadFaceRings([roadRibbon([ends[0],center,ends[1]],arms[0].width+4.3)]),meshes=[];
+    const candidates=roadFaceRings([roadRibbon([ends[0],center,ends[1]],arms[0].width+4)]),meshes=[];
     for(const ring of candidates)for(const piece of clipPavement(ring,[...obstacles,...occupied])){
       meshes.push(extrude(piece,.15,.025));pads.push(piece);occupied.push(obstacle(piece,0));
     }
