@@ -1,4 +1,4 @@
-import {surfaceTile,weatheredPaintTile,timberTile,railingBarsTile} from '../concrete-materials.mjs';
+import {surfaceTile,weatheredPaintTile,railingBarsTile} from '../concrete-materials.mjs';
 import {signAtlas,signsOfKind} from '../neon-signs.mjs';
 import {placeholderBillboards,billboardCells} from '../billboards.mjs';
 import {propsAtlas,vendingAtlas} from '../street-props.mjs';
@@ -43,12 +43,11 @@ export function createCityMaterials(scene,{billboardSlots}={}){
   const indicator=pushMaterial({name:'Cabinet indicator',pbrMetallicRoughness:{baseColorFactor:[.08,.32,.32,1],metallicFactor:0,roughnessFactor:.5},emissiveFactor:[.08,.55,.49],extensions:{KHR_materials_emissive_strength:{emissiveStrength:1.5}}});
 
   // Mapped street furniture: cast concrete from the wall tiles, painted steel from the kit's
-  // paint tile, worn timber slats and alpha-cut railing bars.
+  // paint tile and alpha-cut railing bars.
   const furniture={
     concrete:walls[0],damp:darkBase,recess:start+1,zinc,indicator,
     steel:finish('Oxidized charcoal steel',[56,62,59]),teal:finish('Faded industrial teal',[70,92,84]),
     rust:finish('Rust at welds',[96,58,34],.1,.95),
-    wood:pushMaterial({name:'Worn timber slats',pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],baseColorTexture:{index:pushTexture(timberTile())},metallicFactor:0,roughnessFactor:.9}}),
     bars:pushMaterial({name:'Railing bars',pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],baseColorTexture:{index:pushTexture(railingBarsTile())},metallicFactor:.2,roughnessFactor:.85},alphaMode:'MASK',alphaCutoff:.5,doubleSided:true})
   };
 

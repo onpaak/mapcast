@@ -3,9 +3,8 @@ import {insidePolygon,distanceToSegment} from './spatial.mjs';
 import {canopyObstacles} from './shop-canopy.mjs';
 import {surfaceUV} from './concrete-materials.mjs';
 
-// Mapped street furniture: benches without armrests, litter bins, bicycle racks and metal
-// railings. Positions and lines come from OpenStreetMap; the
-// look is the reviewed kit of cast concrete, painted steel and worn timber. Nothing is added
+// Mapped street furniture: litter bins, bicycle racks and metal railings. Positions and lines
+// come from OpenStreetMap; the look is the reviewed kit of cast concrete and painted steel. Nothing is added
 // where the map has nothing, and anything that would stand on a road, in a building, across
 // the kerb or on another prop is left out and recorded.
 
@@ -14,7 +13,6 @@ const RAILINGS=['fence','railing','guard_rail','handrail'];
 // Walls, hedges and kerbs are not modelled (no solid walls, no plants), and neither are bollards.
 export function furnitureKind(tags={},geometry='Point'){
   if(geometry==='Point'){
-    if(tags.amenity==='bench')return 'bench';
     if(tags.amenity==='waste_basket')return 'litter-bin';
     if(tags.amenity==='bicycle_parking')return 'bicycle-rack';
     if(GATES.includes(tags.barrier))return 'gate';
@@ -57,7 +55,7 @@ function quad(corners,normal){
   const order=facing?[[a,b,c],[a,c,d]]:[[a,c,b],[a,d,c]];
   return order.map(p=>({p,n:[normal,normal,normal]}));
 }
-// Box centred at c with size s, optionally tilted about its local x axis (backrests).
+// Box centred at c with size s, optionally tilted about its local x axis.
 function box([cx,cy,cz],[w,h,d],tilt=0){
   const ct=Math.cos(tilt),st=Math.sin(tilt),r=([x,y,z])=>[x,y*ct-z*st,y*st+z*ct];
   const v=(x,y,z)=>{const q=r([x*w/2,y*h/2,z*d/2]);return [cx+q[0],cy+q[1],cz+q[2]];};
@@ -83,16 +81,6 @@ function tube(points,radius){
 
 // Each model: parts as [materialKey, triangles]; footprint as local [x0,z0,x1,z1].
 const MODELS={
-  bench:({backrest=true}={})=>{
-    const parts=[];
-    for(const x of [-.62,.62]){
-      parts.push(['concrete',box([x,.2075,-.005],[.27,.415,.5])],['damp',box([x,.047,-.005],[.275,.094,.505])],['steel',box([x,.4275,-.02],[.31,.025,.5])]);
-      if(backrest)parts.push(['steel',box([x,.625,-.327],[.045,.46,.037],-.225)]);
-    }
-    [-.205,-.09,.025,.14].forEach((z,i)=>parts.push(['wood',box([0,.445,z],[1.84-i*.013,.036,.095])]));
-    if(backrest)for(const y of [.59,.715,.84])parts.push(['wood',box([0,y,-.26-(y-.5)*.23],[1.81,.095,.033],-.225)]);
-    return {parts,footprint:[-.93,backrest?-.42:-.27,.93,.27]};
-  },
   'litter-bin':()=>({parts:[
     ['teal',box([0,.415,0],[.416,.67,.396])],
     ...[-.25,.25].map(x=>['concrete',box([x,.43,0],[.08,.86,.45])]),
@@ -141,7 +129,7 @@ export function placeStreetFurniture(sources,{street,materials,paths}){
   const skipped=(source,reason)=>records.push({sourceId:source.id,kind:source.kind,status:'skipped',reason});
 
   function placeOne(source,kind,point,yaw,orientationSource,extra={}){
-    const model=MODELS[kind]({backrest:source.tags.backrest!=='no'}),footprint=footprintAt(model.footprint,point,yaw);
+    const model=MODELS[kind](),footprint=footprintAt(model.footprint,point,yaw);
     const {base,reason}=extra.inside&&!footprint.every(q=>insidePolygon(q,extra.inside))?{reason:'outside the mapped parking area'}:fit(footprint);
     if(reason)return {reason};
     const set=setOf(kind);placeParts(set,model.parts,point,base,yaw);set.ids.add(source.id);claim(footprint);
@@ -152,7 +140,7 @@ export function placeStreetFurniture(sources,{street,materials,paths}){
     const {kind,tags}=source;
     if(kind==='gate'||kind==='railing')continue;
     if(tags.indoor==='yes'||tags.location==='underground'||Number(tags.level??0)!==0){skipped(source,'indoor or not at ground level');continue;}
-    if(['bench','litter-bin','bicycle-rack'].includes(kind)){
+    if(['litter-bin','bicycle-rack'].includes(kind)){
       const {yaw,source:orientationSource}=facing(source.point,tags,paths),placed=placeOne(source,kind,source.point,yaw,orientationSource);
       if(placed.reason)skipped(source,placed.reason);else records.push({sourceId:source.id,kind,status:'generated',...placed.record});
     }else if(kind==='bicycle-parking'){

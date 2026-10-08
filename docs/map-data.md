@@ -26,7 +26,7 @@ node src/cli.mjs --area "-73.988897,40.7562 -73.986405,40.755154 -73.984103,40.7
 - The model is not rotated: north stays −Z, so the streets run at their real angle.
 - `metadata.json` and `source-index.json` record the area, and `source-map.svg` outlines it.
 
-Besides buildings, roads, water and green areas, a download includes shops and cafés, and the street furniture the concrete preset models: benches, litter bins, bicycle parking, gates, fences and railings. The Map API returns everything in the box; the Overpass query asks for these tags. Overpass areas cached before street furniture was added are downloaded again, because the query changed.
+Besides buildings, roads, water and green areas, a download includes shops and cafés, and the street furniture the concrete preset models: litter bins, bicycle parking, gates, fences and railings. The Map API returns everything in the box; the Overpass query asks for these tags. Overpass areas cached before street furniture was added are downloaded again, because the query changed.
 
 Downloads add a small buffer around the selection. They also try to fetch building relations that were only partly returned, so buildings crossing the edge come out whole. Even so, the data may be incomplete for some areas. `source-index.json` lists anything that could not be read.
 

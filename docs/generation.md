@@ -149,11 +149,10 @@ Props stand either fully on the pavement or fully on the ground, never across th
 
 ### Mapped street furniture
 
-Benches, litter bins, bicycle racks and railings appear only where OpenStreetMap maps them; nothing is added elsewhere, so streets with little mapping stay plain. Their look is one kit of cast concrete, painted steel and worn timber, not a survey of the real objects. The objects are named `StreetFurniture_*`, and `metadata.json` → `streetFurniture` records every mapped item: where it went, its facing and why it came from the map or was inferred, or why it was left out.
+Litter bins, bicycle racks and railings appear only where OpenStreetMap maps them; nothing is added elsewhere, so streets with little mapping stay plain. Their look is one kit of cast concrete and painted steel, not a survey of the real objects. The objects are named `StreetFurniture_*`, and `metadata.json` → `streetFurniture` records every mapped item: where it went, its facing and why it came from the map or was inferred, or why it was left out.
 
 | OSM | Model |
 | --- | --- |
-| `amenity=bench` | Bench on two concrete supports with timber slats and no armrests; `backrest=no` drops the back |
 | `amenity=waste_basket` | Painted steel bin in a concrete frame |
 | `amenity=bicycle_parking` (point) | One steel hoop stand |
 | `amenity=bicycle_parking` (area) | A row of stands along the longest side: `capacity` / 2 (2 by default), at least 0.9 m apart and inside the area |

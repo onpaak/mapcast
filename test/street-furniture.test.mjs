@@ -16,7 +16,7 @@ function area(extra=[]){
 const city=extra=>concreteCity(generate(area(extra)));
 
 test('furniture tags map to the kit; walls, hedges, kerbs and bollards are not modelled',()=>{
-  assert.equal(furnitureKind({amenity:'bench'}),'bench');
+  assert.equal(furnitureKind({amenity:'bench'}),null);
   assert.equal(furnitureKind({amenity:'waste_basket'}),'litter-bin');
   assert.equal(furnitureKind({barrier:'bollard'}),null);assert.equal(furnitureKind({barrier:'bollard'},'LineString'),null);
   assert.equal(furnitureKind({barrier:'fence'},'LineString'),'railing');
@@ -25,24 +25,24 @@ test('furniture tags map to the kit; walls, hedges, kerbs and bollards are not m
   assert.match(buildQuery([13.4,52.52,13.402,52.522]),/waste_basket/);assert.match(buildQuery([13.4,52.52,13.402,52.522]),/barrier"~"\^\(fence/);
 });
 
-test('mapped benches and bins stand on the pavement, face the street and never stand on the road',()=>{
+test('mapped bins stand on the pavement, face the street and never stand on the road',()=>{
   const scene=city([
-    node(20,.0001,-.00006,{amenity:'bench'}),node(21,.0008,-.00006,{amenity:'waste_basket'}),
-    node(22,.0010,-.00004,{amenity:'bench',direction:'90'}),
-    node(23,.0006,-.0001,{amenity:'bench'}),node(24,.0009,-.00006,{amenity:'bench',indoor:'yes'})
+    node(20,.0001,-.00006,{amenity:'waste_basket'}),node(21,.0008,-.00006,{amenity:'waste_basket'}),
+    node(22,.0010,-.00004,{amenity:'waste_basket',direction:'90'}),
+    node(23,.0006,-.0001,{amenity:'waste_basket'}),node(24,.0009,-.00006,{amenity:'waste_basket',indoor:'yes'})
   ]);
   const rec=id=>scene.metadata.streetFurniture.find(r=>r.sourceId===id);
   assert.equal(rec('node/20').status,'generated');assert.equal(rec('node/21').status,'generated');
-  // No direction tag: face the nearest mapped road (south of the bench, towards +z).
+  // No direction tag: face the nearest mapped road (south of the bin, towards +z).
   assert.equal(rec('node/20').orientationSource,'inferred from nearest mapped path');
-  assert.ok(Math.cos(rec('node/20').yaw)>.9,'bench faces the road');
+  assert.ok(Math.cos(rec('node/20').yaw)>.9,'bin faces the road');
   // direction=90 (east) is respected.
   assert.ok(Math.sin(rec('node/22').yaw)>.99);
   assert.equal(rec('node/23').status,'skipped');assert.match(rec('node/23').reason,/road/);
   assert.equal(rec('node/24').status,'skipped');
   for(const r of scene.metadata.streetFurniture.filter(r=>r.status==='generated'&&r.base!==undefined))assert.ok([0,PAVEMENT_TOP].includes(r.base));
   const objects=scene.objects.filter(o=>o.extras?.sceneModule==='StreetFurniture');
-  assert.ok(objects.some(o=>o.name==='StreetFurniture_bench_wood'));
+  assert.ok(objects.some(o=>o.name==='StreetFurniture_litter-bin_teal'));
   for(const o of objects){assert.ok(o.positions.every(Number.isFinite));assert.equal(o.texcoords.length,o.positions.length/3*2);}
   // Skipped pieces are reported as omissions with their reason.
   assert.ok(scene.metadata.omissions.some(w=>w.id==='node/23'&&/Street furniture/.test(w.reason)));

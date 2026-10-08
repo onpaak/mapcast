@@ -115,7 +115,7 @@ export function generate(data) {
   }
   const extendedDown=supportRaisedSections(objects);
   const shopPOIs=associateShopPOIs(objects,data.features,origin);
-  // Mapped benches, bins, bicycle racks and railings, placed by the concrete preset.
+  // Mapped bins, bicycle racks and railings, placed by the concrete preset.
   const furniture=furnitureSources(data.features,origin);
   const terrain=gameTerrain?{...gameTerrain,minElevation:Math.min(...gameTerrain.elevations),maxElevation:Math.max(...gameTerrain.elevations),cacheFile:undefined}:undefined;
   return {objects,materials,furniture,metadata:{origin,bounds,...(data.selectionArea?{selectionArea:data.selectionArea}:{}),shopPOIs,buildingParts:{parts:placedParts,replacedOutlines,extendedDown},units:'meters',axes:'Y up; X east; -Z north',source:data.source??'User supplied GeoJSON; verify attribution',terrain,terrainError:data.terrainError,warnings,omissions,limitations:[terrain?'Terrain uses a 90m DEM and does not represent curbs or embankments':'Flat terrain fallback','Complex merges and roundabouts are represented by segment geometry','Flat materials only; PS2 texture and lighting pass pending']}};
