@@ -15,6 +15,7 @@ import {placeEdgeSigns} from './city/edge-signs.mjs';
 import {placeRoofEquipment} from './city/roof-equipment.mjs';
 import {buildStructure} from './city/structures.mjs';
 import {placeStreetFurniture} from './street-furniture.mjs';
+import {placeBusStops} from './bus-stops.mjs';
 
 // The concrete-city preset: replaces each OSM building's plain extrusion with a PS2-style
 // facade and adds the neon street layer. Street-facing ground floors are modelled around
@@ -43,6 +44,13 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
   const furniture=lite?{objects:[],records:[]}:placeStreetFurniture(base.furniture??[],{street,materials:materials.furniture,paths:base.objects.flatMap(o=>o.extras?.path?[o.extras.path]:[])});
   scene.objects.push(...furniture.objects);
   for(const r of furniture.records)if(r.status==='skipped')(scene.metadata.omissions??=[]).push({id:r.sourceId,reason:`Street furniture (${r.kind}) left out: ${r.reason}`});
+  // Mapped bus stops last: a shelter slides along the kerb around everything already standing
+  // there, lamp and signal poles included.
+  const poles=scene.objects.filter(o=>['lamp-post-v2','signal-pole'].includes(o.extras?.assetKey)).map(o=>{const [x,,z]=o.extras.instanceOrigin;return [[x-.35,z-.35],[x+.35,z-.35],[x+.35,z+.35],[x-.35,z+.35]];});
+  const busStops=placeBusStops(base.busStops??[],{street,roads:base.objects.filter(o=>o.extras?.path).map(o=>({path:o.extras.path,width:o.extras.width})),obstacles:poles,materials:materials.busStop});
+  scene.objects.push(...busStops.objects);
+  for(const o of busStops.objects)scene.metadata.assetInstances[o.extras.assetKey]=(scene.metadata.assetInstances[o.extras.assetKey]??0)+1;
+  for(const r of busStops.records)if(r.status==='skipped')(scene.metadata.omissions??=[]).push({id:r.sourceId,reason:`Bus stop left out: ${r.reason}`});
 
   scene.metadata={...scene.metadata,style:'concrete-city-reference-v1',entranceLayouts:state.layouts,generationPreset:{...scene.metadata.generationPreset,name:'concrete-city-reference-v1'},sceneModules:scene.objects.reduce((a,o)=>(a[o.extras.sceneModule]=(a[o.extras.sceneModule]??0)+1,a),{})};
   compactMaterials(scene);
@@ -51,7 +59,8 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
     entranceAccessSummary:{},entranceAccessEnabled:false,shopSigns:state.shopSigns,shopBlades:state.shopBlades,streetSigns:state.streetSigns,
     rooftopSigns:state.rooftopSigns,billboards:state.billboards,detail:lite?'lite':'full',windowPosters:state.windowPosters,streetProps:state.streetProps,rooftopEquipment:state.rooftopEquipment,
     groundFloorKit:state.groundFloorKit,groundFloorKitSummary:state.groundFloorKit.reduce((a,k)=>{const key=k.state?`${k.kind}-${k.state}`:k.kind;a[key]=(a[key]??0)+1;return a;},{}),
-    streetFurniture:furniture.records,streetFurnitureSummary:furniture.records.reduce((a,r)=>{a[r.kind]??={generated:0,skipped:0};a[r.kind][r.status]++;return a;},{})
+    streetFurniture:furniture.records,streetFurnitureSummary:furniture.records.reduce((a,r)=>{a[r.kind]??={generated:0,skipped:0};a[r.kind][r.status]++;return a;},{}),
+    busStops:busStops.records,busStopSummary:busStops.records.reduce((a,r)=>{const key=r.status==='generated'?r.kind:r.status;a[key]=(a[key]??0)+1;return a;},{})
   });
   scene.metadata.generationPreset.name='ps2-neon-concrete-v14';
   const buildingMaterials=new Set(scene.objects.filter(o=>o.name.startsWith('Building_')).map(o=>o.material));

@@ -147,6 +147,8 @@ Street lamps are cool-white curved-arm lamps, roughly every 32 m along roads, st
 
 Traffic signal poles stand where OpenStreetMap maps `highway=traffic_signals` on a road, and nowhere else. Each road leaving the signal gets one 3.5 m steel pole on its pavement, just outside the junction, with its head facing back across the junction: it is the far-side signal for the traffic coming from the opposite road, on that traffic's kerb side (the left kerb where traffic keeps left, as in Hong Kong, Japan or the UK). One road axis shows a lit red lens and the crossing axis a lit green one; the lenses glow at night. Street lamps keep 3 m clear of the poles. `metadata.json` → `trafficSignals` records each signal and how many poles it got.
 
+Bus stops appear where OpenStreetMap maps `highway=bus_stop` or a bus platform node (`public_transport=platform` with `bus=yes`), and nowhere else. A stop snaps to the nearest road within 25 m, on the side it is mapped on, 0.3 m back from the kerb with its back to the buildings. It gets a glass shelter: 4 m long, a thin roof with a light strip under its front edge, a glass back, a lightbox poster at one end and the blue stop flag with a lit timetable beyond the other. Where the map says `shelter=no`, or the pavement has no room for a shelter, only the flag pole stands there. The shelter slides up to 6 m along the kerb to keep clear of buildings, lamps, signal poles, shop canopies and props; if even the pole does not fit, the stop is left out. A stop mapped within 18 m of one already placed on the same side is the same stop mapped twice (a stop and its platform) and is merged into it. The flag shows a bus and BUS, never route numbers or names. Every part is one shared mesh, instanced by position and rotation. `metadata.json` → `busStops` records each mapped stop: shelter or pole and why, how far it slid, or why it was merged or left out.
+
 Props stand either fully on the pavement or fully on the ground, never across the kerb. Overhead wires are not generated: without poles and wall brackets they would appear out of nowhere, and OSM rarely maps them.
 
 ### Mapped street furniture
@@ -173,7 +175,7 @@ Where buildings within 80 m average fewer than 3 storeys, as in villages and sub
 
 ## Lite detail
 
-`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors or shopfronts. It also drops air-conditioning units, vending machines, standing lightboxes and mapped street furniture. Signs, billboards and lamps stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
+`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors or shopfronts. It also drops air-conditioning units, vending machines, standing lightboxes and mapped street furniture. Signs, billboards, lamps and bus stops stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
 
 ## Roads and ground
 

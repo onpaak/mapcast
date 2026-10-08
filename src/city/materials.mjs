@@ -4,6 +4,7 @@ import {placeholderBillboards,billboardCells} from '../billboards.mjs';
 import {propsAtlas,vendingAtlas} from '../street-props.mjs';
 import {posterAtlas} from '../window-posters.mjs';
 import {facadeAtlas,facadeTints} from '../facade-atlas.mjs';
+import {busStopFlagTexture,busStopTimetableTexture} from '../bus-stops.mjs';
 
 // Every material and texture atlas the concrete city uses, registered on the scene once.
 // Building geometry is sorted into 18 "bins" per building; palette(seed) maps each bin to
@@ -65,6 +66,20 @@ export function createCityMaterials(scene,{billboardSlots}={}){
   const posterTexture=pushTexture(posterAtlas());
   const posterMaterial=pushMaterial({name:'Shared fictional window posters',pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],baseColorTexture:{index:posterTexture},metallicFactor:0,roughnessFactor:1}});
 
+  // Bus stops: dark steel, see-through glass, a lit strip under the roof, and a lightbox ad,
+  // stop flag and timetable that glow at night. The ad reuses the window posters.
+  const glow=strength=>({extensions:{KHR_materials_emissive_strength:{emissiveStrength:strength}}});
+  const lit=(name,texture,emissive,extra={})=>pushMaterial({name,pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],baseColorTexture:{index:texture},metallicFactor:0,roughnessFactor:.5},emissiveTexture:{index:texture},emissiveFactor:emissive,...extra});
+  const busStop={
+    steel:pushMaterial({name:'Shelter steel',pbrMetallicRoughness:{baseColorFactor:[.13,.14,.14,1],metallicFactor:.4,roughnessFactor:.6}}),
+    glass:pushMaterial({name:'Shelter glass',pbrMetallicRoughness:{baseColorFactor:[.55,.66,.70,.28],metallicFactor:0,roughnessFactor:.08},alphaMode:'BLEND',doubleSided:true}),
+    roof:pushMaterial({name:'Shelter roof',pbrMetallicRoughness:{baseColorFactor:[.30,.32,.33,1],metallicFactor:.2,roughnessFactor:.7}}),
+    strip:pushMaterial({name:'Shelter light strip',pbrMetallicRoughness:{baseColorFactor:[.9,.93,.95,1],metallicFactor:0,roughnessFactor:.5},emissiveFactor:[.85,.92,1],...glow(2.5)}),
+    ad:lit('Shelter lightbox ad',posterTexture,[1,1,1],glow(1.6)),
+    flag:lit('Bus stop flag',pushTexture(busStopFlagTexture()),[.35,.35,.35],{doubleSided:true}),
+    table:lit('Bus stop timetable',pushTexture(busStopTimetableTexture()),[1,1,1],glow(1.3))
+  };
+
   const atlas=facadeAtlas(),atlasColor=pushTexture(atlas.color),atlasGlow=pushTexture(atlas.emissive);
   const facadeMaterials=facadeTints.map((tint,i)=>pushMaterial({name:`Facade atlas ${['concrete','plaster','cool concrete'][i]}`,pbrMetallicRoughness:{baseColorFactor:tint,baseColorTexture:{index:atlasColor},metallicFactor:0,roughnessFactor:.9},emissiveTexture:{index:atlasGlow},emissiveFactor:[.6,.6,.6]}));
   // Glass curtain walls: the same atlas (its curtain cells), glossy so engines reflect the sky.
@@ -77,7 +92,7 @@ export function createCityMaterials(scene,{billboardSlots}={}){
 
   const frontSigns=signsOfKind(signs,'front'),verticalSigns=signsOfKind(signs,'vertical'),squareSigns=signsOfKind(signs,'square');
   return {
-    signMaterials,billboardMaterial,billboardSlotCount,posterMaterial,propsMaterial,vendingMaterial,furniture,
+    signMaterials,billboardMaterial,billboardSlotCount,posterMaterial,propsMaterial,vendingMaterial,furniture,busStop,
     // Wall finish per building: one of three tints, shared by modelled walls and atlas faces.
     wallVariant:seed=>seed%walls.length,
     facadeMaterial:seed=>facadeMaterials[seed%walls.length],

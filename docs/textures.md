@@ -65,6 +65,7 @@ If the two pictures are given in the wrong order, it tells day from night by bri
 | `Shared_*_64.png` | Tiling materials on modelled parts: concrete, plaster, brick, glass, metal, roof |
 | `Asphalt128.png`, `Ground128.png`, `Grass128.png` | Road, base ground and green areas |
 | `Street_props_128x64.png` | Small street props such as air-conditioning units |
-| `Shared_window_posters_128x192.png` | Window posters |
+| `Shared_window_posters_128x192.png` | Window posters, also the bus shelter lightbox |
+| `BusStop_flag_64.png`, `BusStop_timetable_32x64.png` | Bus stop flag and timetable |
 
 Generated textures are original procedural images. None are taken from games.

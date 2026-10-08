@@ -15,6 +15,8 @@ export function renderPreview(scene,{width=960,height=540,eye=scene.metadata.pre
   const sun=norm(sunDirection);
   for(const obj of scene.objects){
     const mat=scene.materials[obj.material],base=mat.pbrMetallicRoughness.baseColorFactor,texture=scene.textures?.[mat.pbrMetallicRoughness.baseColorTexture?.index],glow=scene.textures?.[mat.emissiveTexture?.index];
+    // No transparency here: see-through glass (shelter panes) is left out rather than drawn solid.
+    if(mat.alphaMode==='BLEND')continue;
     for(let i=0;i<obj.positions.length;i+=9){
       const normal=obj.normals.slice(i,i+3);let poly=[];
       for(let k=0;k<3;k++){

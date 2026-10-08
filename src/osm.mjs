@@ -7,6 +7,7 @@ import {polygonsOverlap,insidePolygon,interiorPoint} from './spatial.mjs';
 import {environmentKind} from './environment.mjs';
 import {isShopPOI} from './shop-pois.mjs';
 import {isCrossingNode} from './crossings.mjs';
+import {isBusStopNode} from './bus-stops.mjs';
 import {furnitureKind} from './street-furniture.mjs';
 import {validateArea,areaBounds,clipLineToArea,clipRingToArea} from './area.mjs';
 
@@ -30,7 +31,7 @@ export function expandBounds(input,requestedMeters=100){
 }
 export function buildQuery(bounds) {
   const [w,s,e,n]=validateBounds(bounds),box=`${s},${w},${n},${e}`;
-  return `[out:json][timeout:25];(node["shop"](${box});node["amenity"~"^(cafe|restaurant|bar|fast_food|waste_basket|bicycle_parking)$"](${box});node["barrier"~"^(gate|entrance|lift_gate|swing_gate|opening|kissing_gate)$"](${box});way["barrier"~"^(fence|railing|guard_rail|handrail)$"](${box});way["amenity"="bicycle_parking"](${box});way["building"](${box});way["building:part"](${box});way["highway"](${box});relation["building"](${box});relation["building:part"](${box});way["natural"~"^(water|wood)$"](${box});way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});way["leisure"~"^(park|garden|nature_reserve)$"](${box});way["waterway"="riverbank"](${box});relation["natural"~"^(water|wood)$"](${box});relation["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});relation["leisure"~"^(park|garden|nature_reserve)$"](${box}););(._;>;);out body geom;`;
+  return `[out:json][timeout:25];(node["shop"](${box});node["amenity"~"^(cafe|restaurant|bar|fast_food|waste_basket|bicycle_parking)$"](${box});node["barrier"~"^(gate|entrance|lift_gate|swing_gate|opening|kissing_gate)$"](${box});node["highway"="bus_stop"](${box});node["public_transport"="platform"]["bus"="yes"](${box});way["barrier"~"^(fence|railing|guard_rail|handrail)$"](${box});way["amenity"="bicycle_parking"](${box});way["building"](${box});way["building:part"](${box});way["highway"](${box});relation["building"](${box});relation["building:part"](${box});way["natural"~"^(water|wood)$"](${box});way["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});way["leisure"~"^(park|garden|nature_reserve)$"](${box});way["waterway"="riverbank"](${box});relation["natural"~"^(water|wood)$"](${box});relation["landuse"~"^(forest|grass|meadow|recreation_ground|village_green|orchard)$"](${box});relation["leisure"~"^(park|garden|nature_reserve)$"](${box}););(._;>;);out body geom;`;
 }
 // Liang-Barsky clipping preserves breaks when roads leave the selection.
 export function clipLine(points,b) {
@@ -150,8 +151,8 @@ export function fromOverpass(raw,{bounds,area,provenance={}}={}) {
     if(outlines.some(poly=>insidePolygon(point,poly[0])&&!poly.slice(1).some(h=>insidePolygon(point,h))))features.push(f);
   }
   for(const node of nodes.values())if(!isShopPOI(node.tags)&&furnitureKind(node.tags,'Point')&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
-  // Crossing and signal nodes on roads, for painted zebra crossings and signal poles.
-  for(const node of nodes.values())if((isCrossingNode(node.tags)||node.tags?.highway==='traffic_signals')&&!isShopPOI(node.tags)&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
+  // Crossing, signal and bus stop nodes, for painted zebra crossings, signal poles and shelters.
+  for(const node of nodes.values())if((isCrossingNode(node.tags)||node.tags?.highway==='traffic_signals'||isBusStopNode(node.tags))&&!isShopPOI(node.tags)&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
   for(const node of nodes.values())if(isShopPOI(node.tags)&&Number.isFinite(node.lon)&&Number.isFinite(node.lat)&&inside([node.lon,node.lat]))features.push({type:'Feature',id:`node/${node.id}`,properties:{...node.tags},geometry:{type:'Point',coordinates:[node.lon,node.lat]}});
   return {type:'FeatureCollection',features,selectionBounds:bounds,...(area?{selectionArea:[...area,area[0]]}:{}),diagnostics,source:{...OSM_SOURCE,...provenance,dataTimestamp:raw.osm3s?.timestamp_osm_base},warnings};
 }

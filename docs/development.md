@@ -41,6 +41,7 @@ src/
   brush-glyphs.mjs             24×24 brush-script Chinese for brush signs (baked by tools/brush-glyphs.mjs)
   billboards.mjs, billboard-art.mjs  rooftop billboards and their pixel-art posters
   street-furniture.mjs         mapped bins, bicycle racks and railings
+  bus-stops.mjs                mapped bus stops: glass shelter or flag pole
   street-props.mjs, window-posters.mjs, shop-*.mjs, public-hall.mjs, ...
   glb.mjs, png.mjs             glTF and PNG writers
   texture-overrides.mjs        replace generated textures with PNGs from overrides/
