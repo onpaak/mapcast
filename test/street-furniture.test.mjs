@@ -68,3 +68,14 @@ test('bicycle parking areas get capacity / 2 stands inside the area, and lite de
   assert.deepEqual(lite.metadata.streetFurniture,[]);
   assert.ok(!lite.objects.some(o=>o.extras?.sceneModule==='StreetFurniture'));
 });
+
+test('railings on a central reservation between two carriageways are left out',()=>{
+  // Two one-way carriageways about 4 m apart (edge to edge) with a fence down the middle, and one beyond the outer kerb.
+  const median=[node(40,-.0003,.0002),node(41,.0012,.0002)],kerb=[node(42,-.0003,.00029),node(43,.0012,.00029)];
+  const scene=city([node(500,-.0004,.00025),node(501,.0013,.00025),node(600,-.0004,.00015),node(601,.0013,.00015),
+    {type:'way',id:50,nodes:[500,501],tags:{highway:'secondary',oneway:'yes',width:'7'}},{type:'way',id:60,nodes:[600,601],tags:{highway:'secondary',oneway:'yes',width:'7'}},
+    ...median,...kerb,{type:'way',id:401,nodes:[40,41],tags:{barrier:'fence'}},{type:'way',id:402,nodes:[42,43],tags:{barrier:'fence'}}]);
+  const rec=id=>scene.metadata.streetFurniture.find(r=>r.sourceId===id);
+  assert.equal(rec('way/401/0').status,'skipped');assert.match(rec('way/401/0').reason,/central reservation/);
+  assert.equal(rec('way/402/0').status,'generated');
+});

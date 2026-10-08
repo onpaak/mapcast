@@ -161,6 +161,7 @@ Litter bins, bicycle racks and railings appear only where OpenStreetMap maps the
 - Facing follows `direction` when mapped; otherwise the item faces the nearest mapped road or path, square to it.
 - Items stand fully on the pavement or fully on the ground. Anything that would cross the kerb, stand on a road, overlap a building, or overlap a vending machine, pavement lightbox or another item is left out. So are indoor items and those on another `level`.
 - Railings leave a clear opening at mapped gates (`barrier=gate`, `entrance`, …; the gate leaves are not modelled) and stop where they would cross a carriageway.
+- Railings on a central reservation are left out: where carriageways running alongside the railing lie within 12 m on both sides, with no building between, that stretch is dropped, and a railing that runs mostly along one is dropped whole. Such median fences would otherwise stand alone on the open ground between the two halves of a road.
 - Walls, hedges, kerbs and bollards are not modelled.
 - Lite detail has no street furniture.
 

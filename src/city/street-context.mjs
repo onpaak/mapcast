@@ -89,6 +89,10 @@ export function createStreetContext(base,scene,sources){
       const on=[...ring,c].map(q=>pavement.some(t=>insidePolygon(q,[...t,t[0]]))),count=on.filter(Boolean).length;
       return count===on.length?PAVEMENT_TOP:count===0?0:undefined;
     },
+    // True when a point lies inside a ground-level building footprint.
+    inBuilding(p){
+      return volumes.some(v=>v.min<=.1&&p[0]>=v.box[0]&&p[0]<=v.box[2]&&p[1]>=v.box[1]&&p[1]<=v.box[3]&&insidePolygon(p,v.ring)&&!v.holes.some(h=>insidePolygon(p,h)));
+    },
     // True when a point lies on a road strip (with its kerb margin) or a junction surface.
     onCarriageway(p){
       return roadRings.some(r=>insidePolygon(p,r))||roadFaces.some(t=>insidePolygon(p,[...t,t[0]]));

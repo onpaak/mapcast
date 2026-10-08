@@ -163,6 +163,9 @@ export function placeStreetFurniture(sources,{street,materials,paths}){
 
 // Metal railings on a low concrete plinth along mapped fence, railing and guard-rail lines.
 // Mapped gates leave a clear opening; stretches over a carriageway are left out.
+// A railing with carriageway this close on both sides, and no building between, stands on a
+// central reservation.
+const MEDIAN_REACH=12;
 function placeRailings(sources,street,records){
   const gates=sources.filter(s=>s.kind==='gate'),frame=meshSet(),bars={positions:[],normals:[],texcoords:[]},ids=new Set(),usedGates=new Set();
   for(const source of sources.filter(s=>s.kind==='railing')){
@@ -176,7 +179,19 @@ function placeRailings(sources,street,records){
     const cuts=[];let openings=0;
     for(const gate of gates){let best={d:Infinity,s:0};for(let i=1;i<line.length;i++){const a=line[i-1],b=line[i],len=arcs[i]-arcs[i-1];if(!len)continue;const t=Math.max(0,Math.min(1,((gate.point[0]-a[0])*(b[0]-a[0])+(gate.point[1]-a[1])*(b[1]-a[1]))/(len*len))),d=Math.hypot(a[0]+(b[0]-a[0])*t-gate.point[0],a[1]+(b[1]-a[1])*t-gate.point[1]);if(d<best.d)best={d,s:arcs[i-1]+t*len};}
       if(best.d<=.25){const w=Number.parseFloat(gate.tags.width)||1.2;cuts.push([best.s-w/2,best.s+w/2]);openings++;usedGates.add(gate);}}
-    for(let s=0;s<total;s+=.5)if(street.onCarriageway(at(Math.min(s+.25,total))))cuts.push([s,s+.5]);
+    // Left out where it runs over a carriageway, or along a central reservation: carriageway within
+    // MEDIAN_REACH on both sides, running alongside it, with no building in between. Median fences would stand alone on the open ground between roads.
+    let median=0;
+    for(let s=0;s<total;s+=.5){
+      const m=Math.min(s+.25,total),p=at(m),q=at(Math.min(m+.2,total)),o=at(Math.max(m-.2,0)),d=Math.hypot(q[0]-o[0],q[1]-o[1])||1,n=[-(q[1]-o[1])/d,(q[0]-o[0])/d];
+      // The carriageway reached must run alongside the railing, not cross it as a side street.
+      const parallel=x=>{let best;for(const [a,b] of street.roads){const d=distanceToSegment(x,a,b);if(!best||d<best.d)best={d,a,b};}if(!best)return false;const v=[best.b[0]-best.a[0],best.b[1]-best.a[1]],l=Math.hypot(...v)||1;return Math.abs((v[0]*n[1]-v[1]*n[0])/l)>.9;};
+      const reaches=side=>{for(let r=.5;r<=MEDIAN_REACH;r+=.5){const x=[p[0]+n[0]*side*r,p[1]+n[1]*side*r];if(street.inBuilding(x))return false;if(street.onCarriageway(x))return parallel(x);}return false;};
+      if(street.onCarriageway(p))cuts.push([s,s+.5]);
+      else if(reaches(1)&&reaches(-1)){cuts.push([s,s+.5]);median+=.5;}
+    }
+    // A railing mostly along a central reservation is left out whole, not as stray stubs.
+    if(median>=total/2){records.push({sourceId:source.id,kind:'railing',status:'skipped',reason:'central reservation between two carriageways'});continue;}
     cuts.sort((x,y)=>x[0]-y[0]);const runs=[];let cursor=0;
     for(const [a,b] of cuts){if(a>cursor+.3)runs.push([cursor,a]);cursor=Math.max(cursor,b);}
     if(total>cursor+.3)runs.push([cursor,total]);
@@ -185,7 +200,7 @@ function placeRailings(sources,street,records){
       const ps=[at(start),...line.filter((_,i)=>arcs[i]>start+1e-6&&arcs[i]<end-1e-6),at(end)];
       railing(frame,bars,ps,height);built+=end-start;
     }
-    if(built>0){ids.add(source.id);records.push({sourceId:source.id,kind:'railing',status:'generated',barrier:tags.barrier,length:+built.toFixed(1),height,heightSource:Number.isFinite(tagged)?'OSM height':'default for '+tags.barrier,openings,leftOut:+(total-built).toFixed(1)});}
+    if(built>0){ids.add(source.id);records.push({sourceId:source.id,kind:'railing',status:'generated',barrier:tags.barrier,length:+built.toFixed(1),...(median?{centralReservation:+median.toFixed(1)}:{}),height,heightSource:Number.isFinite(tagged)?'OSM height':'default for '+tags.barrier,openings,leftOut:+(total-built).toFixed(1)});}
     else records.push({sourceId:source.id,kind:'railing',status:'skipped',reason:'the whole line runs over a carriageway or through gates'});
   }
   // Gates only open a railing; their leaves are not modelled.
