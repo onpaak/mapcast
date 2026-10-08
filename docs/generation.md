@@ -14,7 +14,7 @@ Each building is assigned one of five families from its tags and the shops found
 | Industrial / warehouse | Tall single volume, roller-shutter loading doors at the front, high windows on the sides |
 | Public hall | Tall windows, heavy piers, double doors. Civic buildings and libraries, and large venues: theatres, cinemas, arts centres, concert halls, museums, galleries, exhibition and conference centres, sports halls and sports centres |
 
-Schools, hotels and hospitals reuse the ordinary window modules. Other special types (churches, stadiums, grandstands, towers, tanks, lift shafts, and any building type not listed) are a plain concrete mass without windows. `building=yes` with no other hints uses the residential layout. `metadata.json` → `concreteFamilies` records the family chosen for each building and the evidence behind it: `tag`, `mapped-use`, `default` or `fallback`.
+Schools, hotels and hospitals reuse the ordinary window modules, as do guardhouses and outbuildings; bungalows, cabins, huts and farmhouses are homes. Government buildings and police stations are offices, fire stations get the industrial roller doors, and kiosks are shops. Other special types (churches, stadiums, grandstands, towers, tanks, lift shafts, and any building type not listed) are a plain concrete mass without windows. `building=yes` with no other hints uses the residential layout. `metadata.json` → `concreteFamilies` records the family chosen for each building and the evidence behind it: `tag`, `mapped-use`, `default` or `fallback`.
 
 Shop and restaurant points are matched to the building that contains them. Residential blocks with shops get shopfronts on the ground-floor bays next to the entrance.
 

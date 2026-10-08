@@ -1,10 +1,13 @@
 const active=value=>value&&!['no','vacant'].includes(String(value));
-const homes=new Set(['apartments','residential','house','detached','semidetached_house','terrace','dormitory']);
+const homes=new Set(['apartments','residential','house','detached','semidetached_house','terrace','dormitory','bungalow','cabin','hut','villa','farm','static_caravan']);
 // Civic halls, and large venues (theatres, cinemas, museums, sports halls) that would otherwise
 // fall back to a windowless mass.
 const halls=new Set(['civic','public','townhall','community_centre','library','courthouse','theatre','cinema','arts_centre','concert_hall','museum','gallery','exhibition_centre','conference_centre','sports_hall','sports_centre']);
-const industrial=new Set(['industrial','warehouse','garages','garage','shed']);
-const windowBlocks=new Set(['school','college','university','hospital','hotel','motel','hostel','kindergarten']);
+// Fire stations are garages for engines: roller doors at the front suit them.
+const industrial=new Set(['industrial','warehouse','garages','garage','shed','fire_station']);
+// Government buildings and police stations are ordinary offices.
+const offices=new Set(['office','commercial','government','police']);
+const windowBlocks=new Set(['school','college','university','hospital','hotel','motel','hostel','kindergarten','guardhouse','outbuilding']);
 const special=new Set(['church','cathedral','chapel','mosque','synagogue','temple','religious','stadium','tower','water_tower','storage_tank','castle','bunker','hangar','train_station','transportation']);
 
 export function resolveConcreteFamily(tags={}){
@@ -16,8 +19,8 @@ export function resolveConcreteFamily(tags={}){
   if(halls.has(value))return result('public-hall',key);
   if(windowBlocks.has(value))return result('residential',key,'mapped-use',true);
   if(homes.has(value))return result('residential',key);
-  if(['office','commercial'].includes(value))return result('office',key);
-  if(value==='retail')return result('retail',key);
+  if(offices.has(value))return result('office',key);
+  if(value==='retail'||value==='kiosk')return result('retail',key);
   return null;
  };
  // A whole-building type takes precedence over a secondary tenant or amenity.

@@ -22,3 +22,11 @@ test('special and unknown shapes fall back without invented doors or residential
   assert.equal(Math.max(...parts.flatMap(o=>o.positions.filter((_,i)=>i%3===1))),12);
  }
 });
+test('ordinary buildings with windows are not left as plain masses',()=>{
+ for(const [building,family] of [['government','office'],['police','office'],['fire_station','industrial'],['kiosk','retail'],['bungalow','residential'],['cabin','residential'],['hut','residential'],['guardhouse','residential'],['outbuilding','residential']]){
+  const result=resolveConcreteFamily({building});assert.equal(result.family,family,building);assert.notEqual(result.assignment,'fallback',building);
+ }
+ assert.equal(resolveConcreteFamily({building:'yes',amenity:'fire_station'}).family,'industrial');
+ // Walls, gatehouses and temples stay plain masses.
+ for(const building of ['wall','gatehouse','temple'])assert.equal(resolveConcreteFamily({building}).family,'simple-mass');
+});
