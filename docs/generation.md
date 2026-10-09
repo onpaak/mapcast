@@ -67,7 +67,7 @@ Many tall buildings are mapped as `building:part` sections: a podium, setbacks, 
 - Sections inherit the outline's use, so an office tower's sections are offices.
 - Raised sections have no street level: no shopfronts, doors or street signs.
 - Sections outside any outline become buildings of their own.
-- Structures get no windows and become plain metal or concrete: towers (`building=tower` or a `man_made` tower, mast or chimney) are straight shafts, `building:shape=sphere` sections are low-poly spheres, antennas, masts and very thin sections (under 8 m²) are columns, and spires taper to a point over their `roof:height`.
+- Structures get no windows and become plain metal or concrete: towers (`building=tower` or a `man_made` tower, mast or chimney) are straight shafts, except a lattice tower (`tower:construction=lattice`) mapped as one building outline, which is drawn as an ordinary building, `building:shape=sphere` sections are low-poly spheres, antennas, masts and very thin sections (under 8 m²) are columns, and spires taper to a point over their `roof:height`.
 - A section inside several outlines, such as a tower inside a podium, belongs to the smallest one.
 - Sections do not float. When nothing is mapped right under a raised section, for example a podium mapped a storey short or standing outside the selection, the section extends down to the roof below it, or to the ground. Sections tagged `bridge`, `roof`, `canopy` or `balcony` stay in the air.
 - A building that crosses the edge of the selection keeps all its sections, including those outside it.

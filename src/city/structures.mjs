@@ -11,9 +11,11 @@ const TOWERS=['tower','communications_tower','mast','chimney'];
 // 'sphere' for building:shape=sphere; 'spire' for a pointed section (tagged, or a small
 // pyramidal / conical one); 'column' for antennas, masts and sections under 8 m²; 'shaft' for
 // towers (building=tower or a man_made tower, their sections included); otherwise null.
+// A lattice tower mapped as one building outline is an ordinary building: drawn as a plain shaft
+// it would be a blank block as wide as its base.
 export function structureKind(tags,ring){
   const low=key=>String(tags[key]??'').toLowerCase(),isPart=tags['building:part']!==undefined,part=low('building:part');
-  const tower=low('building')==='tower'||TOWERS.includes(low('man_made'));
+  const tower=(low('building')==='tower'||TOWERS.includes(low('man_made')))&&low('tower:construction')!=='lattice';
   if(low('building:shape')==='sphere')return 'sphere';
   if(isPart||tower){
     if(part==='spire')return 'spire';

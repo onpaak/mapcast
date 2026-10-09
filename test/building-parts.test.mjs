@@ -97,6 +97,16 @@ test('a tower inside a podium outline gets its own sections, a sphere and no win
   assert.ok(Math.max(...x)-Math.min(...x)>15,'as wide as its footprint');
 });
 
+test('a lattice tower mapped as one outline is an ordinary building, other towers stay shafts',async()=>{
+  const {structureKind}=await import('../src/city/structures.mjs'),ring=square(0,0,10,10)[0];
+  assert.equal(structureKind({building:'yes',man_made:'tower','tower:construction':'lattice'},ring),null);
+  assert.equal(structureKind({building:'yes',man_made:'tower','tower:construction':'freestanding'},ring),'shaft');
+  assert.equal(structureKind({building:'tower'},ring),'shaft');
+  const scene=generate({type:'FeatureCollection',features:[feature('relation/1',{building:'yes',man_made:'tower','tower:construction':'lattice',height:'330'},square(0,0,.0008,.0008))]});
+  const city=concreteCity(scene);
+  assert.ok(city.objects.some(o=>o.name==='Building_relation/1_FacadeAtlas'),'it has windows');
+});
+
 test('raised sections never float: they reach down to the roof below, or to the ground',()=>{
   // A podium mapped as 3 storeys (9 m) under a tower from the 4th level (12 m), and a tower
   // from the 10th level whose podium was not mapped at all. A skybridge stays in the air.
