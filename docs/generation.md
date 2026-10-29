@@ -29,19 +29,21 @@ The atlas has seven facade profiles: slender windows, wide windows, grouped logg
 
 ### Designed models
 
-About half of the plain residential buildings that suit one are replaced by a designed model, chosen by building id so the same buildings change every time. Each model is a fixed composition; only its bay count follows the building's length and its floor count the building's height, so nothing about it is random.
+About half of the plain residential and office buildings that suit one are replaced by a designed model, chosen by building id so the same buildings change every time. Each model is a fixed composition; only its bay count follows the building's length and its floor count the building's height, so nothing about it is random.
 
 | Model | Where | Composition |
 | --- | --- | --- |
 | Slab on pilotis (A) | At least 20 m long and 7–18 m deep, standing free, with no shops | Deep balconies between concrete fins, a thick slab and parapet per floor, windows set 0.3 m into concrete surrounds, an open ground storey with a dark wall set back behind its piers, a blank end wall and an open switchback stair tower |
+| Egg-crate office (E) | Office buildings 18–90 m long, 12–36 m deep and at least 12 m tall | Solid corner piers framing a deep concrete egg-crate (a fin every 3.6 m, a band every floor, one window and spandrel per cell), a colonnade of square columns with a glazed lobby set back behind it, or shop windows under a fascia, a solid attic and a large roof plant room |
 | Ribbed tower (C) | At most 32 m long, at least 12 m deep, no more than 1.7 times as long as deep, and at least 18 m tall | Full-height ribs with deep windows between them, a heavy crown, a blind service core with a dark slot rising above it, corner piers, and a glazed lobby under an entrance slab, or a row of shop windows and shutters under one fascia when shops are mapped inside |
 
-- The model fills the footprint's smallest enclosing rectangle, so the footprint must cover at least 70% of it, and the rectangle must stay clear of roads. A tower may stand against a neighbour only when its footprint covers 90% of the rectangle, so it does not reach into the building next door.
+- The model fills the footprint's smallest enclosing rectangle, so the footprint must cover at least 70% of it, and the rectangle must stay clear of roads. A tower or an office may stand against a neighbour only when its footprint covers 90% of the rectangle, so it does not reach into the building next door.
 - The front faces the nearest road; the blind end (the slab's end wall, the tower's service core) goes to the end farther from any road. The model is mirrored when both need it.
 - They use the city's finishes: the three wall colours (chosen by building id like any other building's), its glass, steel and roof, and its shop glass, fascias and shutters. Their concrete has a calm board-formed texture, tinted to the same average colour as the wall it stands in for, without the stains that would line up into a grid on long surfaces.
-- Signs, billboards and rooftop letters hang on the model's edges at its own bay joints, under the same rules as on other buildings.
+- Signs, billboards and rooftop letters follow the same rules as on other buildings, but hang only on each model's solid surfaces (the slab's parapets and end wall, the tower's ribs and service core, the office's fins), starting above its ground storey.
+- Small parts are drawn only on the faces that can be seen from outside (the front of a mullion, the reveal of a window surround), which keeps each model to a few thousand triangles.
 - Buildings with a courtyard, sections of a larger building, curtain walls and other special types keep their procedural facade. Lite detail has no designed models.
-- `metadata.json` → `concreteFamilies` marks each one with `layout` `slab-a` or `tower-c` and `appearanceSource: designed-model`.
+- `metadata.json` → `concreteFamilies` marks each one with `layout` `slab-a`, `tower-c` or `office-e` and `appearanceSource: designed-model`.
 
 ### Glass curtain walls
 

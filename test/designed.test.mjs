@@ -18,7 +18,12 @@ const facing=objects=>objects.every(o=>{const p=o.positions;for(let i=0;i<p.leng
 
 test('the models stretch by bays and floors and every face points the way its normal says',()=>{
   const small=slabA({length:22,depth:9,floors:2}),long=slabA({length:46,depth:13,floors:6});
-  assert.ok(long.bays>small.bays&&long.roof>small.roof);
+  assert.ok(long.signFaces[0].bays>small.signFaces[0].bays&&long.roof>small.roof);
+  // Every sign face points away from the model: its outward normal leads out of the footprint.
+  for(const [model,L,D] of [[long,46,13],[towerC({length:17,depth:15,floors:6}),17,15]])for(const f of model.signFaces){
+    const out=[f.dir[1],-f.dir[0]],mid=[f.a[0]+f.dir[0]*f.len/2+out[0]*.5,f.a[1]+f.dir[1]*f.len/2+out[1]*.5];
+    assert.ok(Math.abs(mid[0])>L/2-1e-6||Math.abs(mid[1])>Math.abs(f.a[1])+.4||Math.abs(mid[0])>Math.abs(f.a[0])+.4,'outward');
+  }
   for(const model of [small,long,towerC({length:17,depth:15,floors:6}),towerC({length:24,depth:16,floors:12,shops:true})])assert.ok(facing(model.parts.filter(p=>p.positions.length)));
   const r=rectangle([[0,0],[20,0],[20,10],[0,10],[0,0]]);
   assert.deepEqual([r.length,r.depth].map(v=>+v.toFixed(6)),[20,10]);

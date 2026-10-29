@@ -80,7 +80,8 @@ test('lite detail paints every facade from the atlas and drops street props',()=
 
 test('glass-tagged buildings get curtain walls that light whole floors; others keep concrete',()=>{
  const tower=tags=>({type:'FeatureCollection',selectionBounds:[-.0002,-.0002,.0005,.0003],features:[{id:'way/40',properties:{building:'office','building:levels':'20',...tags},geometry:{type:'Polygon',coordinates:[[[0,0],[.0003,0],[.0003,.00012],[0,.00012],[0,0]]]}},street]});
- const facade=tags=>{const city=concreteCity(generate(tower(tags))),o=city.objects.find(o=>o.name==='Building_way/40_FacadeAtlas');return {city,o,material:city.materials[o.material]};};
+ // Procedural facades only: an untagged office would otherwise become a designed model.
+ const facade=tags=>{const city=concreteCity(generate(tower(tags)),{designed:false}),o=city.objects.find(o=>o.name==='Building_way/40_FacadeAtlas');return {city,o,material:city.materials[o.material]};};
  const glass=facade({'building:material':'glass'});
  assert.equal(glass.material.name,'Facade atlas curtain glass');
  assert.ok(glass.material.pbrMetallicRoughness.roughnessFactor<.3,'glossy enough to reflect the sky');

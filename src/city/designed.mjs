@@ -32,36 +32,42 @@ function quad(m,c,n){
   const ax=Math.abs(n[0]),ay=Math.abs(n[1]),az=Math.abs(n[2]);
   for(const i of f[0]*n[0]+f[1]*n[1]+f[2]*n[2]>0?[0,1,2,0,2,3]:[0,2,1,0,3,2]){const p=c[i];m.positions.push(...p);m.normals.push(...n);m.texcoords.push((ax>ay&&ax>az?p[2]:p[0])/3,-(ay>ax&&ay>az?p[2]:p[1])/3);}
 }
-// Box from a centre, three unit axes and half sizes along them.
-function obox(m,c,axes,h){
+// Box from a centre, three unit axes and half sizes along them. `only` lists the faces to draw
+// (as '+x', '-z', ...) for small parts whose other faces are never seen; all six by default.
+function obox(m,c,axes,h,only){
   const corner=q=>c.map((v,i)=>v+axes[0][i]*q[0]*h[0]+axes[1][i]*q[1]*h[1]+axes[2][i]*q[2]*h[2]);
   for(let k=0;k<3;k++)for(const s of [1,-1]){
+    if(only&&!only.includes((s>0?'+':'-')+'xyz'[k]))continue;
     const [i,j]=[[1,2],[0,2],[0,1]][k],at=(u,v)=>{const q=[0,0,0];q[k]=s;q[i]=u;q[j]=v;return corner(q);};
     quad(m,[at(-1,-1),at(1,-1),at(1,1),at(-1,1)],axes[k].map(v=>v*s));
   }
 }
 const X=[1,0,0],Y=[0,1,0],Z=[0,0,1];
-const box=(P,k,[w,h,d],[x,y,z])=>obox(P[k],[x,y,z],[X,Y,Z],[w/2,h/2,d/2]);
+const box=(P,k,[w,h,d],[x,y,z],only)=>obox(P[k],[x,y,z],[X,Y,Z],[w/2,h/2,d/2],only);
 // A member from a to b, its width along x.
 function beam(P,k,a,b,w,d){
   const v=b.map((q,i)=>q-a[i]),l=Math.hypot(...v),e1=v.map(q=>q/l),e3=[0,-e1[2],e1[1]],n3=Math.hypot(...e3)||1;
   obox(P[k],a.map((q,i)=>(q+b[i])/2),[X,e1,e3.map(q=>q/n3)],[w/2,l/2,d/2]);
 }
 // Glass with three mullions and a transom, on a wall facing +z (side 1) or -z (side -1).
+// Only faces that can be seen from outside: the glass's face, the mullions' fronts and sides,
+// the transom's front, top and bottom.
 function window(P,x,y,z,w,h,lit,side){
-  box(P,lit?SLOT.lit:SLOT.glass,[w,h,.06],[x,y,z]);
-  for(const i of [-1,0,1])box(P,SLOT.steel,[.055,h,.10],[x+i*w/2,y,z+side*.04]);
-  box(P,SLOT.steel,[w,.055,.10],[x,y+h*.23,z+side*.04]);
+  const out=side>0?'+z':'-z';
+  box(P,lit?SLOT.lit:SLOT.glass,[w,h,.06],[x,y,z],[out]);
+  for(const i of [-1,0,1])box(P,SLOT.steel,[.055,h,.10],[x+i*w/2,y,z+side*.04],[out,'+x','-x']);
+  box(P,SLOT.steel,[w,.055,.10],[x,y+h*.23,z+side*.04],[out,'+y','-y']);
 }
 // The same on a wall facing +x.
 function sideWindow(P,x,y,z,w,h,lit){
-  box(P,lit?SLOT.lit:SLOT.glass,[.06,h,w],[x,y,z]);
-  for(const i of [-1,0,1])box(P,SLOT.steel,[.10,h,.055],[x+.04,y,z+i*w/2]);
-  box(P,SLOT.steel,[.10,.055,w],[x+.04,y+h*.23,z]);
+  box(P,lit?SLOT.lit:SLOT.glass,[.06,h,w],[x,y,z],['+x']);
+  for(const i of [-1,0,1])box(P,SLOT.steel,[.10,h,.055],[x+.04,y,z+i*w/2],['+x','+z','-z']);
+  box(P,SLOT.steel,[.10,.055,w],[x+.04,y+h*.23,z],['+x','+y','-y']);
 }
 function stairs(P,x,z,y,rise,run,width,dir){
   const count=Math.ceil(rise/.18),step=run/count;
-  for(let i=0;i<count;i++)box(P,SLOT.cast,[width,.19,step+.015],[x,y+rise*(i+1)/count-.095,z+dir*(i+.5)*step]);
+  // Treads, risers and step ends; the undersides and backs sit against the next step.
+  for(let i=0;i<count;i++)box(P,SLOT.cast,[width,.19,step+.015],[x,y+rise*(i+1)/count-.095,z+dir*(i+.5)*step],['+y',dir>0?'-z':'+z','+x','-x']);
   for(const dx of [-width/2+.12,width/2-.12])beam(P,SLOT.wall,[x+dx,y,z],[x+dx,y+rise,z+dir*run],.22,.25);
   for(const dx of [-width/2+.08,width/2-.08]){beam(P,SLOT.steel,[x+dx,y+1,z],[x+dx,y+rise+1,z+dir*run],.06,.06);for(let i=0;i<=3;i++)box(P,SLOT.steel,[.055,1,.055],[x+dx,y+rise*i/3+.5,z+dir*run*i/3]);}
 }
@@ -90,9 +96,11 @@ export function slabA({length:L,depth:D,floors:F,seed=0}){
         // Glass 0.3 m back inside a concrete surround: a deep opening.
         const x=x0+(j+.5)*bw,w=bw-.55,h=1.95,cy=y+2.05,face=s*(core/2+.3);
         window(P,x,cy,s*(core/2+.07),w,h,hash(j,f,seed)%9===2,s);
-        for(const e of [-1,1])box(P,SLOT.cast,[w+.4,.2,.3],[x,cy+e*(h/2+.1),face-s*.15]);
-        for(const e of [-1,1])box(P,SLOT.cast,[.2,h,.3],[x+e*(w/2+.1),cy,face-s*.15]);
-        box(P,SLOT.recess,[w,.02,.28],[x,cy+h/2-.011,face-s*.15]);
+        // Only the surround's front and the reveal facing into the opening are ever seen.
+        const out=s>0?'+z':'-z';
+        for(const e of [-1,1])box(P,SLOT.cast,[w+.4,.2,.3],[x,cy+e*(h/2+.1),face-s*.15],[out,e>0?'-y':'+y']);
+        for(const e of [-1,1])box(P,SLOT.cast,[.2,h,.3],[x+e*(w/2+.1),cy,face-s*.15],[out,e>0?'-x':'+x']);
+        box(P,SLOT.recess,[w,.02,.28],[x,cy+h/2-.011,face-s*.15],['-y']);
       }
       for(let j=0;j<=n;j++)box(P,SLOT.cast,[.48,2.75,b-.6],[x0+j*bw,y+1.88,s*(core/2+.1+(b-.6)/2)]);
     }
@@ -110,7 +118,12 @@ export function slabA({length:L,depth:D,floors:F,seed=0}){
   box(P,SLOT.wall,[4.8,.55,Ds-.6],[tx+2.1,top+.9,0]);
   box(P,SLOT.wall,[Math.min(4.4,Lb*.25),2,Math.min(4,core)],[mid+2,top+1.55,-Math.min(1,core/4)]);
   box(P,SLOT.wall,[1.3,3.25,1.6],[mid-3.8,top+2.15,-Math.min(2.1,core/2-.8)]);
-  return {parts:P,roof:top+.625,floorHeight:fh,bays:n};
+  // Signs hang on the parapets' outer face, at the fins, and on the blank end wall.
+  const para=D/2-.775;
+  // signFloor: signs start just above the open ground storey, on the first parapet.
+  return {parts:P,roof:top+.625,signFloor:base+.1,signFaces:[
+    {a:[x1,para],dir:[-1,0],len:Lb,bays:n,front:true},{a:[x0,-para],dir:[1,0],len:Lb,bays:n},
+    {a:[-L/2,Ds/2-.3],dir:[0,-1],len:Ds-.6,bays:Math.max(2,Math.round((Ds-.6)/3))}]};
 }
 
 // ---------- C: ribbed tower ----------
@@ -153,7 +166,66 @@ export function towerC({length:L,depth:D,floors:F,seed=0,shops=false}){
   for(const x of [-L/2+.78,-L/2+C-.78])box(P,SLOT.wall,[1.55,ch-.55,cd],[x,.55+(ch-.55)/2,cz]);
   box(P,SLOT.steel,[.45,ch-.55,cd-1.15],[-L/2+C/2,.55+(ch-.55)/2,cz-.55]);
   box(P,SLOT.wall,[C+.15,.75,cd+.8],[-L/2+C/2,ch+.37,cz]);
-  return {parts:P,roof:top+1.3,floorHeight:fh,bays:n};
+  // Signs hang on the ribs, the end fins and the blind service core.
+  return {parts:P,roof:top+1.3,signFloor:base+.1,signFaces:[
+    {a:[xb1,D/2],dir:[-1,0],len:Wb,bays:n,front:true},{a:[xb0,-D/2],dir:[1,0],len:Wb,bays:n},
+    {a:[L/2,zc-bodyD/2],dir:[0,1],len:bodyD,bays:sides},{a:[-L/2,cz+cd/2],dir:[0,-1],len:cd,bays:Math.max(2,Math.round(cd/3))}]};
+}
+
+// ---------- E: egg-crate office ----------
+export const OFFICE={pier:1.6,bay:3.6,base:5,floor:3.6,attic:1.8,cell:1,minLength:18,maxLength:90,minDepth:12,maxDepth:36,minHeight:12};
+export const officeFloors=height=>Math.max(2,Math.min(30,Math.round((height-OFFICE.base-OFFICE.attic)/OFFICE.floor)));
+// One cell of the egg-crate on a wall facing +z (side 1), -z (-1), +x (2) or -x (-2): a concrete
+// spandrel and a window behind the grid's face.
+function cell(P,c,y,w,fh,face,side,lit){
+  const z=side===2||side===-2,s=Math.sign(side),h=fh-.35-1.1,cy=y+.35+.9+h/2+.05;
+  const at=(along,depthOff)=>z?[face+s*depthOff,along]:[along,face+s*depthOff];
+  const [sx,sz]=at(c,.06);box(P,SLOT.cast,z?[.12,.9,w-.4]:[w-.4,.9,.12],[sx,y+.35+.45,sz],[z?(s>0?'+x':'-x'):(s>0?'+z':'-z')]);
+  const out=z?(s>0?'+x':'-x'):(s>0?'+z':'-z'),[gx,gz]=at(c,.04),gw=w-.6;
+  box(P,lit?SLOT.lit:SLOT.glass,z?[.06,h,gw]:[gw,h,.06],[gx,cy,gz],[out]);
+  const [mx,mz]=at(c,.09);box(P,SLOT.steel,z?[.1,h,.06]:[.06,h,.1],[mx,cy,mz],[out,...(z?['+z','-z']:['+x','-x'])]);
+}
+// Solid corner piers framing a deep concrete egg-crate (a fin every bay, a band every floor, one
+// window and spandrel per cell) over a colonnade with a glazed lobby set back behind it, or shop
+// windows under a fascia; a solid attic and a large roof plant room.
+export function officeE({length:L,depth:D,floors:F,seed=0,shops=false}){
+  const P=parts(),{pier:Q,base,floor:fh,attic:A,cell:K}=OFFICE,top=base+F*fh;
+  const Li=L-2*Q,Di=D-2*Q,nx=Math.max(2,Math.round(Li/OFFICE.bay)),nz=Math.max(2,Math.round(Di/OFFICE.bay)),bx=Li/nx,bz=Di/nz;
+  box(P,SLOT.cast,[L,.4,D],[0,.2,0]);
+  for(const x of [-1,1])for(const z of [-1,1])box(P,SLOT.wall,[Q,top+A-.4,Q],[x*(L-Q)/2,(.4+top+A)/2,z*(D-Q)/2]);
+  // Ground storey: square columns on every second fin line, the lobby set 2.4 m back.
+  const back=2.4;box(P,SLOT.recess,[Li,base-.4,Di-2*back+2*Q],[0,(base+.4)/2,0]);
+  for(const s of [-1,1]){
+    for(let j=2;j<nx;j+=2)box(P,SLOT.wall,[1.1,base-.4,1.1],[-Li/2+j*bx,(base+.4)/2,s*(D/2-.55)]);
+    const face=s*(D/2-back);
+    if(shops){
+      for(let j=0;j<nx;j++)box(P,hash(j,s,seed+3)%3===0?SLOT.shutter:SLOT.display,[bx-.5,2.8,.08],[-Li/2+(j+.5)*bx,1.9,face],[s>0?'+z':'-z']);
+      box(P,SLOT.fascia,[Li,.8,.3],[0,base-1.1,face+s*.15]);
+    }else for(let j=0;j<nx;j++){window(P,-Li/2+(j+.5)*bx,2.3,face,bx-.3,3.4,false,s);}
+  }
+  // The body behind the egg-crate, the crate itself on all four faces, then the attic.
+  box(P,SLOT.recess,[Li+.2,top-base,Di+.2],[0,(base+top)/2,0]);
+  const H=top-base;
+  for(const s of [-1,1]){
+    for(let j=0;j<=nx;j++)box(P,SLOT.cast,[.4,H,K],[-Li/2+j*bx,base+H/2,s*(D/2-Q+K/2)]);
+    for(let j=0;j<=nz;j++)box(P,SLOT.cast,[K,H,.4],[s*(L/2-Q+K/2),base+H/2,-Di/2+j*bz]);
+    for(let f=0;f<=F;f++){
+      box(P,SLOT.cast,[Li,.35,K],[0,base+f*fh+.175,s*(D/2-Q+K/2)]);
+      box(P,SLOT.cast,[K,.35,Di],[s*(L/2-Q+K/2),base+f*fh+.175,0]);
+    }
+    for(let f=0;f<F;f++){
+      for(let j=0;j<nx;j++)cell(P,-Li/2+(j+.5)*bx,base+f*fh,bx,fh,s*(Di/2+.1),s,hash(j,f*2+(s>0?0:1),seed)%9===2);
+      for(let j=0;j<nz;j++)cell(P,-Di/2+(j+.5)*bz,base+f*fh,bz,fh,s*(Li/2+.1),2*s,hash(j,f*2+(s>0?4:5),seed)%9===2);
+    }
+  }
+  box(P,SLOT.wall,[L,A,D],[0,top+A/2,0]);box(P,SLOT.wall,[L+.3,.3,D+.3],[0,top+A-.15,0]);
+  box(P,SLOT.roof,[L-2.4,.08,D-2.4],[0,top+A+.04,0]);
+  box(P,SLOT.wall,[Math.min(12,L*.4),3.2,Math.min(9,D*.45)],[L*.08,top+A+1.6,-D*.05]);
+  // Signs hang on the egg-crate's fins, 0.6 m behind the corner piers.
+  const g=Q-K;
+  return {parts:P,roof:top+A,signFloor:base+.1,signFaces:[
+    {a:[Li/2,D/2-g],dir:[-1,0],len:Li,bays:nx,front:true},{a:[-Li/2,-(D/2-g)],dir:[1,0],len:Li,bays:nx},
+    {a:[L/2-g,-Di/2],dir:[0,1],len:Di,bays:nz},{a:[-(L/2-g),Di/2],dir:[0,-1],len:Di,bays:nz}]};
 }
 
 // ---------- which buildings ----------
@@ -187,16 +259,18 @@ export function designedContext(base){
 // stand free and have no shops. Half of them change, by building id.
 export function designedChoice(source,building,context){
   const id=source.extras.sourceId,ring=source.extras.footprint;
-  if(building.family!=='residential'||building.glass||building.structure||building.base>0||source.extras.outlineId!==undefined||source.extras.holes?.length)return null;
+  const office=building.family==='office';
+  if(building.family!=='residential'&&!office||building.glass||building.structure||building.base>0||source.extras.outlineId!==undefined||source.extras.holes?.length)return null;
   if(stableSeed(`${id}:designed`)%2)return null;
   const rect=rectangle(ring);if(!rect)return null;
   const fill=ringArea(ring)/rect.area;if(fill<.7)return null;
   const {length:L,depth:D}=rect,h=source.extras.height,shops=Boolean(source.extras.containedShops?.length);
-  const style=D>=TOWER.minDepth&&L<=TOWER.maxLength&&L/D<=TOWER.maxAspect&&h>=TOWER.minHeight?'tower-c'
+  const style=office?(L>=OFFICE.minLength&&L<=OFFICE.maxLength&&D>=OFFICE.minDepth&&D<=OFFICE.maxDepth&&h>=OFFICE.minHeight?'office-e':null)
+    :D>=TOWER.minDepth&&L<=TOWER.maxLength&&L/D<=TOWER.maxAspect&&h>=TOWER.minHeight?'tower-c'
     :!shops&&L>=SLAB.minLength&&D>=SLAB.minDepth&&D<=SLAB.maxDepth?'slab-a':null;
   if(!style)return null;
   const joined=context.footprints.some(f=>f.id!==id&&polygonsOverlap(rectangleRing(rect,1.5),f.ring));
-  if(joined&&!(style==='tower-c'&&fill>=.9))return null;
+  if(joined&&!(style!=='slab-a'&&fill>=.9))return null;
   if(context.roads.some(r=>polygonsOverlap(rectangleRing(rect),r)))return null;
   // The blind end (the tower's service core, the slab's end wall) goes to the end farther from
   // any road; the front (+z) faces the nearest road, mirroring the model when needed.
@@ -204,7 +278,7 @@ export function designedChoice(source,building,context){
   const end=s=>[rect.c[0]+rect.u[0]*s*L/2,rect.c[1]+rect.u[1]*s*L/2];
   if(toRoad(end(-1))<toRoad(end(1)))rect.u=[-rect.u[0],-rect.u[1]];
   const n=[-rect.u[1],rect.u[0]],side=s=>[rect.c[0]+n[0]*s*D/2,rect.c[1]+n[1]*s*D/2];
-  return {style,rect,mirror:toRoad(side(-1))<toRoad(side(1)),shops,joined,floors:style==='tower-c'?towerFloors(h):slabFloors(h)};
+  return {style,rect,mirror:toRoad(side(-1))<toRoad(side(1)),shops,joined,floors:style==='tower-c'?towerFloors(h):style==='office-e'?officeFloors(h):slabFloors(h)};
 }
 
 // ---------- building it ----------
@@ -212,7 +286,7 @@ export function designedChoice(source,building,context){
 // letters on the rectangle's edges, at the model's own bay joints. Sign housings go to out.
 export function buildDesigned(city,building,out){
   const {scene,materials,street}=city,{source,seed,designed}=building,{style,rect,floors,shops}=designed;
-  const model=(style==='tower-c'?towerC:slabA)({length:rect.length,depth:rect.depth,floors,seed,shops});
+  const model=({'tower-c':towerC,'office-e':officeE,'slab-a':slabA})[style]({length:rect.length,depth:rect.depth,floors,seed,shops});
   // Mirrored models flip local z, and each triangle's winding with it.
   const mats=materials.designed(seed),{c,u}=rect,n=designed.mirror?[u[1],-u[0]]:[-u[1],u[0]];
   const extras={...source.extras,sceneModule:'Buildings',designedModel:style};
@@ -224,12 +298,15 @@ export function buildDesigned(city,building,out){
     if(designed.mirror)for(let t=0;t<positions.length/3;t+=3)for(const [arr,w] of [[positions,3],[normals,3],[texcoords,2]])for(let k2=0;k2<w;k2++){const i1=(t+1)*w+k2,i2=(t+2)*w+k2;[arr[i1],arr[i2]]=[arr[i2],arr[i1]];}
     scene.objects.push({name:`${source.name}_Designed_${k}`,positions,normals,texcoords,material:mats[k],extras});
   });
-  // Signs: the rectangle stands in for the footprint, the model's floors and roof for the plan's.
-  const ring=rectangleRing(designed.mirror?{...rect,u:[-u[0],-u[1]]}:rect),signed={...building,ring,holes:[],height:model.roof,floors:style==='tower-c'?floors:floors+1,floorHeight:model.floorHeight,retail:false,mixedShop:shops,front:2};
-  for(let edge=0;edge<4;edge++){
-    const a=ring[edge],b=ring[edge+1],len=Math.hypot(b[0]-a[0],b[1]-a[1]),eu=[(b[0]-a[0])/len,(b[1]-a[1])/len],en=[eu[1],-eu[0]];
-    const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2],facing=street.roads.some(([p,q])=>{const d=distanceToSegment(mid,p,q);if(d>25)return false;const t=[q[0]-p[0],q[1]-p[1]],l2=t[0]*t[0]+t[1]*t[1]||1,s=Math.max(0,Math.min(1,((mid[0]-p[0])*t[0]+(mid[1]-p[1])*t[1])/l2));return (p[0]+t[0]*s-mid[0])*en[0]+(p[1]+t[1]*s-mid[1])*en[1]>.1;});
-    const bays=edge%2===0?model.bays:Math.max(2,Math.round(len/4.3));
+  // Signs hang on the model's own sign faces (a solid surface and its joints), carried into the
+  // scene by the same placement; the rectangle stands in for the footprint on the roof.
+  const toWorld=([x,z])=>[c[0]+u[0]*x+n[0]*z,c[1]+u[1]*x+n[1]*z],turn=([x,z])=>[u[0]*x+n[0]*z,u[1]*x+n[1]*z];
+  const faces=model.signFaces.map(f=>{const eu=turn(f.dir),local=[f.dir[1],-f.dir[0]],en=turn(local);return {...f,a:toWorld(f.a),eu,en};});
+  const front=faces.findIndex(f=>f.front);
+  const signed={...building,ring:rectangleRing(rect),holes:[],height:model.roof,floors:style==='tower-c'?floors:floors+1,floorHeight:model.signFloor,retail:false,mixedShop:shops,front};
+  faces.forEach((f,edge)=>{
+    const {a,eu,en,len,bays}=f,b=[a[0]+eu[0]*len,a[1]+eu[1]*len],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    const facing=street.roads.some(([p,q])=>{const d=distanceToSegment(mid,p,q);if(d>25)return false;const t=[q[0]-p[0],q[1]-p[1]],l2=t[0]*t[0]+t[1]*t[1]||1,s2=Math.max(0,Math.min(1,((mid[0]-p[0])*t[0]+(mid[1]-p[1])*t[1])/l2));return (p[0]+t[0]*s2-mid[0])*en[0]+(p[1]+t[1]*s2-mid[1])*en[1]>.1;});
     placeEdgeSigns(city,signed,{edge,a,b,u:eu,n:en,len,bays,bw:len/bays,isStreet:facing,open:()=>true},out);
-  }
+  });
 }
