@@ -11,7 +11,7 @@ import {downloadTerrain} from './terrain.mjs';
 import {applyTextureOverrides} from './texture-overrides.mjs';
 import {BILLBOARD_LAYOUT} from './billboards.mjs';
 import {validateArea,areaBounds} from './area.mjs';
-const usage='Usage: node src/cli.mjs [--input area.geojson|osm.json] [--bbox west,south,east,north | --area "lon,lat lon,lat lon,lat lon,lat"] --out output/area [--provider map-api|overpass] [--cache cache] [--refresh] [--offline] [--terrain] [--textures overrides/textures] [--detail full|lite]';
+const usage='Usage: node src/cli.mjs [--input area.geojson|osm.json] [--bbox west,south,east,north | --area "lon,lat lon,lat lon,lat lon,lat"] --out output/area [--provider map-api|overpass] [--cache cache] [--refresh] [--offline] [--terrain] [--textures overrides/textures] [--detail full|lite] [--levels storeys]';
 try {
   const args=process.argv.slice(2),options={};
   for(let i=0;i<args.length;i++) {
@@ -20,7 +20,7 @@ try {
     if(key==='--offline'){options.offline=true;continue;}
     if(key==='--refresh'){options.refresh=true;continue;}
     if(key==='--terrain'){options.terrain=true;continue;}
-    if(!['--input','--out','--bbox','--area','--cache','--endpoint','--provider','--textures','--detail'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error(`Invalid argument: ${key}\n${usage}`);
+    if(!['--input','--out','--bbox','--area','--cache','--endpoint','--provider','--textures','--detail','--levels'].includes(key)||!args[i+1]||args[i+1].startsWith('--'))throw new Error(`Invalid argument: ${key}\n${usage}`);
     options[key.slice(2)]=args[++i];
   }
   if(!options.out||(!options.input&&!options.bbox&&!options.area))throw new Error(usage);
@@ -48,9 +48,12 @@ try {
   if(!options.terrain){delete data.terrain;delete data.terrainError;}
   else if(bounds&&!data.terrain)try{const terrain=await downloadTerrain(bounds,{cacheDir:options.cache??'cache'});data.terrain=terrain;console.log(`${terrain.cacheHit?'Elevation cache hit':'Downloaded elevation'}: ${terrain.cacheFile}`);}catch(error){data.terrainError=error.message;data.warnings=[...(data.warnings??[]),{id:'terrain',reason:`Elevation unavailable, using flat ground: ${error.message}`}];}
   if(options.detail&&!['full','lite'].includes(options.detail))throw new Error('Detail must be full or lite');
+  // Storeys for buildings mapped with no height or levels (otherwise 12 m).
+  const defaultLevels=options.levels===undefined?undefined:Number(options.levels);
+  if(defaultLevels!==undefined&&!(Number.isInteger(defaultLevels)&&defaultLevels>=1&&defaultLevels<=60))throw new Error('Levels must be a whole number from 1 to 60');
   // A billboard override records how many of its slots hold distinct artwork.
   const texturesDir=resolve(options.textures??'overrides/textures'),billboardSlots=await readFile(resolve(texturesDir,`${BILLBOARD_LAYOUT.name}.json`),'utf8').then(t=>JSON.parse(t).unique,()=>undefined);
-  const baseScene=generate(data),scene=concreteCity(baseScene,{billboardSlots,detail:options.detail}),report=sourceReport(data,baseScene),out=resolve(options.out);
+  const baseScene=generate(data,{defaultLevels}),scene=concreteCity(baseScene,{billboardSlots,detail:options.detail}),report=sourceReport(data,baseScene),out=resolve(options.out);
   report.index.summary.architectureTypes=scene.metadata.architectureTypes;
   // Street furniture is placed by the concrete preset, after the base scene the report reads.
   if(scene.metadata.streetFurniture){

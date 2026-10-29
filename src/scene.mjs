@@ -10,7 +10,10 @@ import {furnitureSources} from './street-furniture.mjs';
 import {terrainMesh,terrainHeightLocal,prepareGameTerrain} from './terrain.mjs';
 import {isCrossingNode} from './crossings.mjs';
 import {isBusStopNode} from './bus-stops.mjs';
-export function generate(data) {
+// options.defaultLevels: storeys for buildings with no height, levels or telling type, in place of
+// the 12 m default (12 m = 4 storeys). Set by the user; nothing is guessed.
+export function generate(data,{defaultLevels}={}) {
+  const fallback=defaultLevels>0?{height:defaultLevels*3,source:'user setting'}:undefined;
   if(data.type!=='FeatureCollection'||!Array.isArray(data.features)) throw new Error('Expected WGS84 GeoJSON FeatureCollection');
   const pairs=[];
   function walk(c){if(Array.isArray(c)&&typeof c[0]==='number'){if(c.length<2||!Number.isFinite(c[0])||!Number.isFinite(c[1])||Math.abs(c[0])>180||Math.abs(c[1])>90)throw new Error('Invalid WGS84 coordinates');pairs.push(c);}else if(Array.isArray(c)) c.forEach(walk);}
@@ -42,7 +45,7 @@ export function generate(data) {
   function addPart(record,outlineTags,outlineHeight,index){
     const p=record.feature.properties,inherited=Object.fromEntries(Object.entries(outlineTags??{}).filter(([k])=>!['height','building:levels','min_height','building:min_level','name'].includes(k)));
     if(Number(p.layer||0)<0||['underground','indoor'].includes(p.location)){warnings.push({id:record.id,reason:'Underground or indoor building not supported'});return;}
-    const {height,min,source}=partHeight(p,outlineHeight);
+    const {height,min,source}=partHeight(p,outlineHeight,fallback);
     if(!(height-min>=1)){warnings.push({id:record.id,reason:'Building part has no height above its base'});return;}
     addBuilding({id:record.id,p:{...inherited,...p,building:p.building??outlineTags?.building??'yes'},polygons:record.polygons,index,height,heightSource:source,min,outlineId:record.outline});
     placedParts++;
@@ -83,7 +86,7 @@ export function generate(data) {
       }else if(p.building&&String(p.building).toLowerCase()!=='no') {
         if(['roof','proposed','construction','ruins'].includes(String(p.building).toLowerCase()))throw new Error(`Building type ${p.building} is not a finished enclosed building`);
         if(!['Polygon','MultiPolygon'].includes(g?.type))throw new Error('Building must be Polygon or MultiPolygon');
-        const polygons=projectPolygons(g),{height,source}=buildingHeight(p,footprintArea(polygons[0][0]));
+        const polygons=projectPolygons(g),{height,source}=buildingHeight(p,footprintArea(polygons[0][0]),fallback);
         // Mapped building:part sections replace the outline, as in OSM's Simple 3D Buildings.
         const inner=partRecords.filter(r=>!r.outline&&r.owner===id);
         if(inner.length){
@@ -151,20 +154,21 @@ function supportRaisedSections(objects){
 
 const numeric=v=>/^\d+(\.\d+)?(\s*m)?$/.test(String(v))?parseFloat(v):NaN;
 // height, else building:levels × 3 m, else an estimate from type and footprint.
-function buildingHeight(p,area){
+function buildingHeight(p,area,fallback){
   const tagged=numeric(p.height),levels=numeric(p['building:levels']);
   if(tagged>0)return {height:tagged,source:'height'};
   if(levels>0)return {height:levels*3,source:'levels'};
-  return untaggedHeight(p.building,area);
+  const estimate=untaggedHeight(p.building,area);
+  return estimate.source==='default'&&fallback?fallback:estimate;
 }
 // A building:part spans min_height (or building:min_level × 3 m) to its own height; a part
 // without height or levels takes the outline's.
-function partHeight(p,outlineHeight){
+function partHeight(p,outlineHeight,fallback){
   const tagged=numeric(p.height),levels=numeric(p['building:levels']),minTagged=numeric(p.min_height),minLevel=numeric(p['building:min_level']);
   const min=minTagged>=0?minTagged:minLevel>=0?minLevel*3:0;
   if(tagged>0)return {height:tagged,min,source:'height'};
   if(levels>0)return {height:levels*3,min,source:'levels'};
-  return {height:outlineHeight??12,min,source:outlineHeight===undefined?'default':'outline'};
+  return outlineHeight!==undefined?{height:outlineHeight,min,source:'outline'}:{height:fallback?.height??12,min,source:fallback?.source??'default'};
 }
 const footprintArea=ring=>Math.abs(ring.reduce((sum,p,i)=>{const q=ring[(i+1)%ring.length];return sum+p[0]*q[1]-q[0]*p[1];},0))/2;
 

@@ -25,7 +25,8 @@ export function validateRequest(input){
   const provider=input.provider??'map-api';if(!['map-api','overpass'].includes(provider))throw new Error('Unknown map data source');
   if(provider==='map-api'&&Math.hypot(...project(bounds[2],bounds[3],[bounds[0],bounds[1]]))>1000)throw new Error('Area too large: the OSM Map API allows a 1 km diagonal');
   for(const key of ['offline','lite'])if(input[key]!==undefined&&typeof input[key]!=='boolean')throw new Error(`${key} must be a boolean`);
-  return {bounds,area,provider,offline:input.offline===true,lite:input.lite===true};
+  if(input.levels!==undefined&&input.levels!==null&&!(Number.isInteger(input.levels)&&input.levels>=1&&input.levels<=60))throw new Error('levels must be a whole number from 1 to 60');
+  return {bounds,area,provider,offline:input.offline===true,lite:input.lite===true,levels:input.levels??undefined};
 }
 
 function json(res,status,value){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(value));}
@@ -63,9 +64,9 @@ async function pruneWebResults(){
     await rm(resolve(outputDir,name),{recursive:true,force:true});
 }
 
-function startJob({bounds,area,provider,offline,lite}){
+function startJob({bounds,area,provider,offline,lite,levels}){
   const id=randomUUID(),name='web-'+id,job={id,state:'running',stage:'loading',bounds};jobs.set(id,job);running=true;
-  const args=[resolve(root,'src/cli.mjs'),...(area?['--area',area.map(p=>p.join(',')).join(' ')]:['--bbox',bounds.join(',')]),'--provider',provider,'--out',resolve(outputDir,name),...(offline?['--offline']:[]),...(lite?['--detail','lite']:[])];
+  const args=[resolve(root,'src/cli.mjs'),...(area?['--area',area.map(p=>p.join(',')).join(' ')]:['--bbox',bounds.join(',')]),'--provider',provider,'--out',resolve(outputDir,name),...(offline?['--offline']:[]),...(lite?['--detail','lite']:[]),...(levels?['--levels',String(levels)]:[])];
   const child=spawn(process.execPath,args,{cwd:root,windowsHide:true,stdio:['ignore','pipe','pipe']});
   let errors='';
   child.stdout.on('data',b=>{const text=b.toString();if(text.includes('Cache hit'))job.stage='cached';else if(text.includes('Downloaded'))job.stage='downloaded';});

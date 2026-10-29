@@ -70,7 +70,9 @@ Tagging varies a lot between cities: parts of Manhattan have many glass-tagged t
 | barn | 6 m |
 | `building=yes` under 200 m² | 6.5 m |
 | `building=yes` under 400 m² | 9.5 m |
-| anything else | 12 m |
+| anything else | 12 m, or the storeys you set × 3 m |
+
+Where the map has few heights, as in many Chinese residential districts, "anything else" covers most buildings and the skyline comes out flat at four storeys. The **Storeys for untagged buildings** field on the web page (`--levels` on the command line) sets how many storeys those buildings get instead. It changes nothing else: mapped heights and levels, the type estimates above and the small-footprint estimates stay as they are. The program does not guess; `source-index.json` marks these heights as `user setting`.
 
 Each object's `heightSource` in the metadata says which rule was used. Buildings with a negative `layer`, or with `location=underground` or `indoor`, are skipped. A positive `layer` only describes the stacking relative to platforms and stations, so those buildings are generated as usual.
 

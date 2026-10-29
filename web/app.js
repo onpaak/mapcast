@@ -3,7 +3,7 @@ import {t,getLanguage,setLanguage,applyStatic,locale} from './i18n.js';
 
 const $=id=>document.getElementById(id);
 const SIDES=['west','south','east','north'],home=[13.401,52.527,13.407,52.531];
-const LOCKED=[...SIDES,'provider','offline','select','select-area','area-points','example','locate','search','recent','delete-result'];
+const LOCKED=[...SIDES,'provider','offline','levels','select','select-area','area-points','example','locate','search','recent','delete-result'];
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const storage={get:key=>{try{return localStorage.getItem(key);}catch{return null;}},set:(key,value)=>{try{localStorage.setItem(key,value);}catch{}}};
 const canvas=document.querySelector('.canvas');
@@ -39,14 +39,18 @@ const limit=()=>$('provider').value==='map-api'?1000:3000;
 const latLngs=points=>points.map(([lon,lat])=>[lat,lon]);
 const selectionKey=()=>shape==='area'?'area:'+JSON.stringify(areaPoints):'box:'+JSON.stringify(bounds());
 const resultKey=summary=>summary.area?'area:'+JSON.stringify(normalizeArea(summary.area.slice(0,-1))):'box:'+JSON.stringify(summary.bounds);
+// The storeys field as a number, undefined when empty, null when not a whole number from 1 to 60.
+function levels(){const raw=$('levels').value.trim();if(!raw)return undefined;const n=Number(raw);return Number.isInteger(n)&&n>=1&&n<=60?n:null;}
 function validate(){
   const km=v=>(v/1000).toFixed(2);
   const check=shape==='area'?validateAreaSelection(areaPoints,limit()):validateSelection(bounds(),limit());
   $('size').textContent=Number.isFinite(check.distance)?t('size',{distance:km(check.distance),limit:limit()/1000}):t('sizeMissing');
-  $('validation').textContent=check.error?t('err_'+check.error,{distance:km(check.distance),limit:limit()/1000}):'';
+  // Storeys for untagged buildings: empty, or a whole number from 1 to 60.
+  const levelsBad=levels()===null;$('levels').setAttribute('aria-invalid',String(levelsBad));
+  $('validation').textContent=check.error?t('err_'+check.error,{distance:km(check.distance),limit:limit()/1000}):levelsBad?t('err_levels'):'';
   for(const id of SIDES)$(id).setAttribute('aria-invalid',String(shape==='box'&&(check.invalid??[]).includes(id)));
   $('area-points').setAttribute('aria-invalid',String(shape==='area'&&!check.valid));
-  $('generate').disabled=!check.valid||!!job||!!drawing;
+  $('generate').disabled=!check.valid||levelsBad||!!job||!!drawing;
   // A result for another area stays viewable, but the 3D view says so.
   const stale=!!result&&selectionKey()!==resultKey(result.report.summary);
   $('stale-note').hidden=!stale;
@@ -126,6 +130,7 @@ $('example').onchange=()=>{const value=$('example').value;if(!value)return;stopD
 $('locate').onclick=()=>{stopDraw();view('map');if(shape==='box')setBounds(bounds(),true);else fitSelection();};
 for(const id of SIDES)$(id).addEventListener('input',()=>{if(validate()){const b=bounds();selection.setBounds([[b[1],b[0]],[b[3],b[2]]]);}});
 $('provider').addEventListener('input',validate);
+$('levels').addEventListener('input',validate);
 for(const id of ['west','east'])$(id).addEventListener('change',()=>{const value=Number($(id).value);if(Number.isFinite(value))$(id).value=normalizeLongitude(value);validate();});
 // Four "lon, lat" lines; the area follows as soon as all four parse.
 $('area-points').addEventListener('input',()=>{
@@ -287,12 +292,12 @@ function lock(on){
   $('generate').firstElementChild.textContent=t(on?'generating':'generate');$('progress').hidden=!on;validate();
 }
 $('generate').onclick=async()=>{
-  if(!validate()||job)return;
+  if(!validate()||levels()===null||job)return;
   job={stage:'loading',started:Date.now()};lock(true);drawMessages();
   const ticker=setInterval(drawMessages,1000);
   let outcome;
   try{
-    const body={...(shape==='area'?{area:areaPoints}:{bounds:bounds()}),provider:$('provider').value,offline:$('offline').checked,lite:document.querySelector('[name=detail]:checked').value==='lite'};
+    const body={...(shape==='area'?{area:areaPoints}:{bounds:bounds()}),provider:$('provider').value,offline:$('offline').checked,lite:document.querySelector('[name=detail]:checked').value==='lite',...(levels()?{levels:levels()}:{})};
     const {id}=await api('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     let state;
     do{await new Promise(r=>setTimeout(r,1000));state=await api('/api/jobs/'+id);job.stage=state.stage;drawMessages();}while(state.state==='running');

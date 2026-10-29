@@ -56,6 +56,7 @@ node src/cli.mjs --input examples/block.json --out output/demo
 | `--out` | 目录 | 输出目录。目录中已生成的文件会被覆盖。 |
 | `--provider` | `map-api`（默认）、`overpass` | 地图数据来源。 |
 | `--offline` | | 只用缓存，完全不联网。 |
+| `--levels` | 1–60 | 地图上没标高度、层数，也看不出类型的楼按几层生成；不设则为 12 m（4 层）。 |
 | `--detail` | `full`（默认）、`lite` | `lite` 精简模式：全部立面用贴图，不放街道道具，文件约小三分之一。 |
 | `--textures` | 目录 | 替换贴图（默认 `overrides/textures/`），见[替换贴图](docs/textures.md)。 |
 

@@ -56,6 +56,7 @@ node src/cli.mjs --input examples/block.json --out output/demo
 | `--out` | folder | Output folder. Generated files there are overwritten. |
 | `--provider` | `map-api` (default), `overpass` | Where map data comes from. |
 | `--offline` | | Use cached data only; never touch the network. |
+| `--levels` | 1–60 | Storeys for buildings mapped with no height, levels or telling type; otherwise they are 12 m (4 storeys). |
 | `--detail` | `full` (default), `lite` | `lite` paints every facade from the atlas and drops street props. The file is roughly a third smaller. |
 | `--textures` | folder | Replacement textures (default `overrides/textures/`). See [textures](docs/textures.md). |
 
