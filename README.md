@@ -3,8 +3,8 @@
 **English** · [简体中文](README.zh-CN.md)
 
 <p>
-  <img src="docs/images/closeup.jpg" width="49%" alt="Close-up at blue hour: glass towers with lit floors beside a concrete tower">
-  <img src="docs/images/city.jpg" width="49%" alt="A dense block of concrete towers with lit windows at blue hour">
+  <img src="docs/images/towers-closeup.jpg" width="49%" alt="Close-up at blue hour: glass towers with lit floors beside a concrete tower">
+  <img src="docs/images/towers-block.jpg" width="49%" alt="A dense block of concrete towers with lit windows at blue hour">
 </p>
 <p>
   <img src="docs/images/street.jpg" width="49%" alt="A junction at blue hour: a painted zebra crossing, traffic signals and a vending machine between concrete blocks">
