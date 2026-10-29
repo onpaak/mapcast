@@ -5,6 +5,7 @@ import {propsAtlas,vendingAtlas} from '../street-props.mjs';
 import {posterAtlas} from '../window-posters.mjs';
 import {facadeAtlas,facadeTints} from '../facade-atlas.mjs';
 import {busStopFlagTexture,busStopTimetableTexture} from '../bus-stops.mjs';
+import {boardTexture} from './designed.mjs';
 
 // Every material and texture atlas the concrete city uses, registered on the scene once.
 // Building geometry is sorted into 18 "bins" per building; palette(seed) maps each bin to
@@ -90,6 +91,14 @@ export function createCityMaterials(scene,{billboardSlots}={}){
   const vending=vendingAtlas(),vendingTexture=pushTexture(vending.color);pushTexture(vending.emissive);
   const vendingMaterial=pushMaterial({name:'Vending machines',pbrMetallicRoughness:{baseColorFactor:[1,1,1,1],baseColorTexture:{index:vendingTexture},metallicFactor:0,roughnessFactor:.6},emissiveTexture:{index:vendingTexture+1},emissiveFactor:[1,1,1],extensions:{KHR_materials_emissive_strength:{emissiveStrength:1.6}}});
 
+  // Designed models (city/designed.mjs): calm board-formed concrete tinted to average the same
+  // colour as each city wall finish, so they share the street's palette without its streaks.
+  const linear8=c=>(c/=255)<=.04045?c/12.92:((c+.055)/1.055)**2.4,average=t=>{const s=[0,0,0];for(let i=0;i<t.rgba.length;i+=4)for(let k=0;k<3;k++)s[k]+=linear8(t.rgba[i+k]);return s.map(v=>v/(t.rgba.length/4));};
+  const board=pushTexture(boardTexture()),boardAverage=average(scene.textures[board]);
+  const asBoard=source=>{const m=scene.materials[source],pbr=m.pbrMetallicRoughness,city=average(scene.textures[pbr.baseColorTexture.index]),tint=pbr.baseColorFactor;
+    return pushMaterial({name:'Designed '+m.name.toLowerCase(),pbrMetallicRoughness:{baseColorFactor:[...[0,1,2].map(k=>Math.min(1,city[k]*tint[k]/boardAverage[k])),1],baseColorTexture:{index:board},metallicFactor:0,roughnessFactor:.95}});};
+  const designedWalls=walls.map(asBoard),designedRecess=asBoard(darkBase);
+
   const frontSigns=signsOfKind(signs,'front'),verticalSigns=signsOfKind(signs,'vertical'),squareSigns=signsOfKind(signs,'square');
   return {
     signMaterials,billboardMaterial,billboardSlotCount,posterMaterial,propsMaterial,vendingMaterial,furniture,busStop,
@@ -97,6 +106,8 @@ export function createCityMaterials(scene,{billboardSlots}={}){
     wallVariant:seed=>seed%walls.length,
     facadeMaterial:seed=>facadeMaterials[seed%walls.length],
     curtainMaterial,
+    // Material per designed-model slot (city/designed.mjs SLOT), varied by the building seed.
+    designed:seed=>{const wall=designedWalls[seed%walls.length];return [wall,wall,metal,unlitGlass,warmGlass,roof,designedRecess,displayGlass,[fasciaTeal,fasciaCream][seed%2],shutters[Math.floor(seed/7)%shutters.length]];},
     // Material for each geometry bin (see BIN), varied by the building seed.
     // Kit colours use higher seed digits than the wall finish, so they vary independently.
     palette:seed=>[walls[seed%walls.length],start+1,glass,metal,start+4,roof,seed%3===1?brick:darkBase,unlitGlass,warmGlass,door,fasciaTeal,fasciaCream,displayGlass,

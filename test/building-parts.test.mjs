@@ -65,10 +65,11 @@ test('a wall shared by two sections is drawn once, by the taller one',()=>{
 test('walls against a neighbour get no facade below its roof',()=>{
   // Two buildings share the wall at x = 0 (the scene origin): 12 m to the west, 24 m to the east.
   // Vertices strictly inside that wall (away from the corners, which the side walls share) are checked.
+  // Procedural facades only: a designed model would replace the taller one.
   const city=concreteCity(generate({type:'FeatureCollection',features:[
     feature('way/10',{building:'apartments',height:'12'},square(0,0,.0002,.0002)),
     feature('way/11',{building:'apartments',height:'24'},square(.0002,0,.0004,.0002))
-  ]}));
+  ]}),{designed:false});
   const onWall=city.objects.filter(o=>/^Building_way\/1[01]/.test(o.name)).flatMap(o=>{
     const hits=[];for(let i=0;i<o.positions.length;i+=3)if(Math.abs(o.positions[i])<.05&&Math.abs(o.positions[i+2])<10.5&&o.positions[i+1]>.05&&o.positions[i+1]<11.9)hits.push(o.name);return hits;
   });

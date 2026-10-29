@@ -52,7 +52,8 @@ test('concrete facade reserves ground entrance and exports finite recessed geome
 test('window variation and shared surface assignments remain stable when source order changes',()=>{
  const feature=(id,x)=>({id,properties:{building:'apartments','building:levels':'5'},geometry:{type:'Polygon',coordinates:[[[x,0],[x+.0003,0],[x+.0003,.00012],[x,.00012],[x,0]]]}});
  const features=[feature('way/11',0),feature('way/12',.0005)],data={type:'FeatureCollection',selectionBounds:[-.0001,-.0001,.001,.0003],features};
- const a=concreteCity(generate(data)),b=concreteCity(generate({...data,features:[...features].reverse()}));
+ // Procedural facades only; designed models are checked in designed.test.mjs.
+ const a=concreteCity(generate(data),{designed:false}),b=concreteCity(generate({...data,features:[...features].reverse()}),{designed:false});
  const signature=scene=>scene.objects.filter(o=>o.name.startsWith('Building_')).map(o=>({name:o.name,material:scene.materials[o.material].name,positions:o.positions})).sort((x,y)=>x.name.localeCompare(y.name));
  assert.deepEqual(signature(a),signature(b));
  assert.ok(a.metadata.textureReuse.sharedBuildingTextures<=7);
@@ -60,7 +61,7 @@ test('window variation and shared surface assignments remain stable when source 
 });
 
 test('curtain walls and towers keep a painted ground floor and carry no hung signs',()=>{
- const make=properties=>concreteCity(generate({type:'FeatureCollection',features:[{id:'way/95',properties,geometry:{type:'Polygon',coordinates:[[[0,0],[.0006,0],[.0006,.00015],[0,.00015],[0,0]]]}}]}));
+ const make=properties=>concreteCity(generate({type:'FeatureCollection',features:[{id:'way/95',properties,geometry:{type:'Polygon',coordinates:[[[0,0],[.0006,0],[.0006,.00015],[0,.00015],[0,0]]]}}]}),{designed:false});
  for(const properties of [{building:'retail','building:levels':'5','building:material':'glass',shop:'mall'},{building:'apartments','building:levels':'14',shop:'bakery'}]){
    const {metadata,objects,materials}=make(properties);
    for(const key of ['entranceLayouts','frontages','shopSigns','shopBlades','streetSigns','windowPosters','shopCanopies'])assert.deepEqual(metadata[key],[],key);

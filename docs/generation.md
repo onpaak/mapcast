@@ -27,6 +27,22 @@ Following PS2-era practice, most of the building is textured rather than modelle
 
 The atlas has seven facade profiles: slender windows, wide windows, grouped loggias, small square windows, office bands, a plain window block, and a dense tower grid. Buildings of 12 storeys or more use the tower grid: plain mid-grey concrete and three small windows per bay, each lit independently, with about a third lit. Walls are neutral cool grey. Lit windows are mostly cool white with some warm white.
 
+### Designed models
+
+About half of the plain residential buildings that suit one are replaced by a designed model, chosen by building id so the same buildings change every time. Each model is a fixed composition; only its bay count follows the building's length and its floor count the building's height, so nothing about it is random.
+
+| Model | Where | Composition |
+| --- | --- | --- |
+| Slab on pilotis (A) | At least 20 m long and 7–18 m deep, standing free, with no shops | Deep balconies between concrete fins, a thick slab and parapet per floor, windows set 0.3 m into concrete surrounds, an open ground storey with a dark wall set back behind its piers, a blank end wall and an open switchback stair tower |
+| Ribbed tower (C) | At most 32 m long, at least 12 m deep, no more than 1.7 times as long as deep, and at least 18 m tall | Full-height ribs with deep windows between them, a heavy crown, a blind service core with a dark slot rising above it, corner piers, and a glazed lobby under an entrance slab, or a row of shop windows and shutters under one fascia when shops are mapped inside |
+
+- The model fills the footprint's smallest enclosing rectangle, so the footprint must cover at least 70% of it, and the rectangle must stay clear of roads. A tower may stand against a neighbour only when its footprint covers 90% of the rectangle, so it does not reach into the building next door.
+- The front faces the nearest road; the blind end (the slab's end wall, the tower's service core) goes to the end farther from any road. The model is mirrored when both need it.
+- They use the city's finishes: the three wall colours (chosen by building id like any other building's), its glass, steel and roof, and its shop glass, fascias and shutters. Their concrete has a calm board-formed texture, tinted to the same average colour as the wall it stands in for, without the stains that would line up into a grid on long surfaces.
+- Signs, billboards and rooftop letters hang on the model's edges at its own bay joints, under the same rules as on other buildings.
+- Buildings with a courtyard, sections of a larger building, curtain walls and other special types keep their procedural facade. Lite detail has no designed models.
+- `metadata.json` → `concreteFamilies` marks each one with `layout` `slab-a` or `tower-c` and `appearanceSource: designed-model`.
+
 ### Glass curtain walls
 
 Buildings tagged as glass get a curtain wall instead: `building:facade:material`, or `building:material` when the facade material is missing, set to `glass` or `mirror`. Untagged buildings never get one, so a skyline does not mix real glass towers with guessed ones. Sections inherit the tag from their outline.
@@ -175,7 +191,7 @@ Where buildings within 80 m average fewer than 3 storeys, as in villages and sub
 
 ## Lite detail
 
-`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors or shopfronts. It also drops air-conditioning units, vending machines, standing lightboxes and mapped street furniture. Signs, billboards, lamps and bus stops stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
+`--detail lite` (**Lite** on the web page) paints every facade from the atlas: there are no modelled ground floors, shopfronts or designed models. It also drops air-conditioning units, vending machines, standing lightboxes and mapped street furniture. Signs, billboards, lamps and bus stops stay. A dense Hong Kong block goes from about 576,000 triangles and 51 MB to about 367,000 triangles and 33 MB.
 
 ## Roads and ground
 

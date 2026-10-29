@@ -36,6 +36,7 @@ src/
     facade-bays.mjs              atlas bays, modelled windows and doors, courtyards
     edge-signs.mjs               tower and vertical signs, billboards, rooftop letters
     roof-equipment.mjs           water tanks, plant rooms, condensers and antennas
+    designed.mjs                 designed models (slab A, tower C) fitted to suitable buildings
   facade-atlas.mjs             painted facade atlas and its UV frames
   neon-signs.mjs, pixel-glyphs.mjs, sign-catalog.mjs   sign atlas, glyphs and the sign word list
   brush-glyphs.mjs             24×24 brush-script Chinese for brush signs (baked by tools/brush-glyphs.mjs)

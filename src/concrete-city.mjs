@@ -15,6 +15,7 @@ import {placeEdgeSigns} from './city/edge-signs.mjs';
 import {placeRoofEquipment} from './city/roof-equipment.mjs';
 import {buildStructure} from './city/structures.mjs';
 import {placeStreetFurniture} from './street-furniture.mjs';
+import {designedContext,designedChoice,buildDesigned} from './city/designed.mjs';
 import {placeBusStops} from './bus-stops.mjs';
 
 // The concrete-city preset: replaces each OSM building's plain extrusion with a PS2-style
@@ -24,7 +25,8 @@ import {placeBusStops} from './bus-stops.mjs';
 // options.billboardSlots: how many atlas slots hold distinct artwork (default all).
 // options.detail: 'full' (default) or 'lite' — every facade from the atlas (no modelled
 // ground floors or shopfronts) and no street props; signs, billboards and lamps remain.
-export function concreteCity(base,{billboardSlots,detail='full'}={}){
+// options.designed: false keeps every building procedural, with no designed models (city/designed.mjs).
+export function concreteCity(base,{billboardSlots,detail='full',designed=true}={}){
   const lite=detail==='lite';
   // Every building is rebuilt below, so the PS2 pass skips its own building details.
   const scene=stylePS2(base,{buildingDetails:false}),sources=base.objects.filter(o=>o.name.startsWith('Building_'));
@@ -39,7 +41,9 @@ export function concreteCity(base,{billboardSlots,detail='full'}={}){
     rooftopEquipment:[],placedTowers:[],placedRoofSigns:[],groundFloorKit:[]
   };
   const city={scene,materials,street,state,lite};
-  for(const [index,source] of sources.entries())buildBuilding(city,{...planBuilding(source,street.roads),quiet:lowRise[index]});
+  // About half the plain residential buildings that suit one become a designed model (lite skips them).
+  const designedLookup=lite||!designed?null:designedContext(base);
+  for(const [index,source] of sources.entries()){const plan=planBuilding(source,street.roads);buildBuilding(city,{...plan,quiet:lowRise[index],designed:designedLookup&&designedChoice(source,plan,designedLookup)});}
   // Mapped street furniture goes in after the buildings, so it yields to their shop props.
   const furniture=lite?{objects:[],records:[]}:placeStreetFurniture(base.furniture??[],{street,materials:materials.furniture,paths:base.objects.flatMap(o=>o.extras?.path?[o.extras.path]:[])});
   scene.objects.push(...furniture.objects);
@@ -73,7 +77,7 @@ function buildBuilding(city,building){
   const {scene,materials,state}=city,{source,id,ring,seed,facade,base}=building;
   // Geometry is built from y=0 and raised to the section's base at the end.
   const firstObject=scene.objects.length;
-  state.families.push({sourceId:id,objectName:source.name,...building.assignment,layout:building.structure??(building.residential?facade.name:building.family),...(building.glass?{facade:'curtain-wall'}:{}),appearanceSource:'procedural-interpretation'});
+  state.families.push({sourceId:id,objectName:source.name,...building.assignment,layout:building.designed?.style??building.structure??(building.residential?facade.name:building.family),...(building.glass?{facade:'curtain-wall'}:{}),appearanceSource:building.designed?'designed-model':'procedural-interpretation'});
 
   // Output meshes: modelled geometry sorted into material bins, the atlas facade, and props.
   const empty=()=>({positions:[],normals:[],texcoords:[]});
@@ -85,7 +89,8 @@ function buildBuilding(city,building){
   };
 
   // Slender sections (columns, spires) are plain shafts; everything else is a full building.
-  if(building.structure)buildStructure(building,out.emit);
+  if(building.designed)buildDesigned(city,building,out);
+  else if(building.structure)buildStructure(building,out.emit);
   else buildMass(city,building,out);
 
   const palette=materials.palette(seed);
