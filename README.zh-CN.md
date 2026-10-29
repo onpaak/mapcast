@@ -3,8 +3,8 @@
 [English](README.md) · **简体中文**
 
 <p>
-  <img src="docs/images/closeup.jpg" width="49%" alt="蓝调时刻特写：亮着楼层灯的玻璃塔楼与混凝土塔楼">
-  <img src="docs/images/city.jpg" width="49%" alt="蓝调时刻的密集混凝土楼群，窗户陆续亮起">
+  <img src="docs/images/closeup.jpg" width="49%" alt="蓝调时刻的路口：斑马线、红绿灯和自动售货机，两侧是混凝土楼">
+  <img src="docs/images/city.jpg" width="49%" alt="蓝调时刻俯瞰密集街区，满城窗户亮起">
 </p>
 
 把 OpenStreetMap 上的一块真实街区变成 PS2 风格的城市场景，包括混凝土板楼、像素贴图立面和霓虹招牌。在地图上框选区域，得到一个 `city.glb`，可以直接导入 Blender、Unreal Engine 或任何支持 glTF 的工具。
